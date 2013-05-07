@@ -1077,7 +1077,7 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
 
       // Lamp
       gNbPrimitives = gpuKernel->addPrimitive( ptSphere );
-      gpuKernel->setPrimitive( gNbPrimitives, -5000.f, 5000.f, 0.f, 10.f, 0.f, 0.f, 129, 1 , 1);
+      gpuKernel->setPrimitive( gNbPrimitives, -8000.f, 8000.f, -8000.f, 10.f, 0.f, 0.f, 129, 1 , 1);
 
       if( update )
       {
