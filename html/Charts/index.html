@@ -1,0 +1,258 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head>
+    <title></title>
+    <style type="text/css">
+        .MV_Container
+        {
+            float:right;
+            width:100%;
+        }
+        .MV_ResultContainer
+        {
+            text-align:center;
+            margin: 16px 16px 16px 16px;
+        }
+        .MV_Param_Section
+        {
+            float:left;
+            background-color:white;
+            width:100%;
+            height:603px;
+        }
+        .MV_Result_Section
+        {
+            float:left;
+            background-color:white;
+            width:70%;
+            height:422px;
+        }
+        h1, h2
+        {
+            text-align:left;
+        }
+       #MV_ParamID_BkColor
+       {
+          width: 86px;
+       }
+       #MV_ParamID_Size
+       {
+          width: 108px;
+       }
+       #MV_ParamID_PostProcessing
+       {
+          width: 121px;
+          height: 22px;
+       }
+       #MV_ParamID_Quality
+       {
+          width: 23px;
+       }
+       #MV_ParamID_BkColor0
+       {
+          width: 55px;
+       }
+       #MV_ParamID_BkColor1
+       {
+          width: 55px;
+       }
+       #MV_ParamID_Depth
+       {
+          width: 46px;
+       }
+       #MV_ParamID_Distance
+       {
+          width: 49px;
+       }
+       #MV_ParamID_Scene
+       {
+          width: 136px;
+       }
+       #MV_ParamID_BkColor0
+       {
+          width: 55px;
+       }
+       #MV_ParamID_Rotation
+       {
+          width: 79px;
+       }
+       </style>
+    <script type="text/javascript">
+        (function (window) {
+           function VW_GetSingleton() {
+              ///////////////////////////////////////////////////////////////////////
+              //Private members
+              ///////////////////////////////////////////////////////////////////////
+              var my = {};
+
+              my.fakeID = 0;
+              //my.VM_IMAGE_GENERATOR_URL = "http://ray-charts.no-ip.org:10000/get?"; //window.location
+              my.VM_IMAGE_GENERATOR_URL = "http://localhost:10000/get?"; //window.location
+
+              my.GetXMLHttpRequest = function () {
+                 if (window.XMLHttpRequest) {
+                    return new XMLHttpRequest();
+                 }
+                 else {
+                    if (window.XMLHttpRequestProgID) {
+                       return new ActiveXObject(window.XMLHttpRequestProgID);
+                    }
+                    else {
+                       var progIDs = ["Msxml2.XMLHTTP.5.0", "Msxml2.XMLHTTP.4.0", "MSXML2.XMLHTTP.3.0", "MSXML2.XMLHTTP", "Microsoft.XMLHTTP"];
+                       for (var i = 0; i < progIDs.length; ++i) {
+                          var progID = progIDs[i];
+                          try {
+                             var x = new ActiveXObject(progID);
+                             window.XMLHttpRequestProgID = progID;
+                             return x;
+                          }
+                          catch (e) { }
+                       }
+                    }
+                 }
+
+                 return null;
+              };
+
+              my.GetParameterFromUI = function (ctrlID) {
+                 return encodeURIComponent(document.getElementById(ctrlID).value);
+              };
+
+              my.CreateParameterObject = function () {
+                 var p = { "postprocessing": "", "bkcolor": "", "size": "", "quality": "", "scene": "", "distance": "", "depth": "", "rotation": "" };
+                 p.PostProcessing = my.GetParameterFromUI('MV_ParamID_PostProcessing');
+                 p.BkColor = my.GetParameterFromUI('MV_ParamID_BkColor');
+                 p.Size = my.GetParameterFromUI('MV_ParamID_Size');
+                 p.Quality = my.GetParameterFromUI('MV_ParamID_Quality');
+                 p.Scene = my.GetParameterFromUI('MV_ParamID_Scene');
+                 p.Distance = my.GetParameterFromUI('MV_ParamID_Distance');
+                 p.Depth = my.GetParameterFromUI('MV_ParamID_Depth');
+                 p.Rotation = my.GetParameterFromUI('MV_ParamID_Rotation');
+                 return p;
+              };
+
+              my.HandleGeneratedImage = function (response) {
+                 document.getElementById('MV_TargetImage').src = response;
+                 return;
+              };
+
+              ///////////////////////////////////////////////////////////////////////
+              //Public functions
+              ///////////////////////////////////////////////////////////////////////
+              var that = {};
+
+              that.GenerateImage = function () {
+                 var p = my.CreateParameterObject();
+                 var x = my.GetXMLHttpRequest();
+                 var targetURL = my.VM_IMAGE_GENERATOR_URL +
+                  "&postprocessing=" + p.PostProcessing + "&bkcolor=" + p.BkColor +
+                  "&size=" + p.Size + "&quality=" + p.Quality + "&rotation=" + p.Rotation + 
+                  "&scene=" + p.Scene + "&distance=" + p.Distance + "&depth=" + p.Depth +
+                  "&fake=" + my.fakeID + "&values=0,0";
+                 my.fakeID++;
+
+                 x.open("GET", targetURL, true);
+
+                 x.onreadystatechange = function () {
+                    // status = 4 means finish
+                    if (x.readyState != 4) {
+                       return;
+                    }
+                    try {
+                       my.HandleGeneratedImage(x.responseText);
+                    }
+                    catch (e) {
+                       alert(x.responseText);
+                    }
+                 };
+
+                 x.send(null);
+              };
+
+              return that;
+           };
+
+           window.VM_Manager = VW_GetSingleton();
+
+        })(window);
+        
+        String.prototype.format = function()
+        { 
+	        var formatted = this; 
+	        var params = arguments;
+        	
+	        if (arguments[0] instanceof Array)
+	        {
+		        params = arguments[0];
+	        }
+        	
+	        for (arg in params)
+	        { 
+		        formatted = formatted.replace("{" + arg + "}", params[arg]); 
+	        } 
+	        return formatted; 
+        };
+	     function MV_TargetImage_onclick() {
+
+	     }
+
+	     function MV_ParamID_Structure_onclick() {
+
+	     }
+
+    </script>
+</head>
+<body>
+    <h1 align="left">Ray-Charts Visualization v0.1</h1>
+    <div class="MV_Container">
+        <div class="MV_Param_Section" style="font-size: small">
+            <!--
+            http://molecular-visualization.no-ip.org/get?molecule=1ACZ&scheme=2&postprocessing=1&bkcolor=0,0,0
+            -->
+            <p>
+               <label>Image size: 
+               <select id="MV_ParamID_Size" value="0" name="D3">
+                  <option value="0">768x768</option>
+                  <option value="1">1024x1024</option>
+                  <option value="2">1600x1600</option>
+                  <option value="3">1920x1920</option>
+                  <option value="4">2048x2048</option>
+                  <option value="5">4096x4096</option>
+               </select>&nbsp; Quality: 
+               <input id="MV_ParamID_Quality" type="text" value="1"/></label></p>
+            <p>
+               Distance:
+               <input id="MV_ParamID_Distance" type="text" value="-5000"/> Depth:
+               <input id="MV_ParamID_Depth" type="text" value="50000"/>&nbsp; Rotation:
+               <input id="MV_ParamID_Rotation" type="text" value="20,20,0"/></p>
+            <p>
+               <label>Post-processing effect:   </label>
+               <select id="MV_ParamID_PostProcessing" value="0" name="D2">
+                  <option value="0">None</option>
+                  <option value="1">Depth of field</option>
+                  <option value="2">Ambient Occlusion</option>
+               </select>&nbsp;&nbsp;&nbsp;
+               </p>
+            <p>
+               Scene:
+               <select id="MV_ParamID_Scene" value="0" 
+                  onclick="return MV_ParamID_Structure_onclick()" name="D1">
+                  <option value="0">Default</option>
+                  <option value="1">Water bubble</option>
+                  <option value="2">Back wall</option>
+                  <option value="3">Cornel Box</option>
+               </select>
+               <label>Background color:&nbsp;&nbsp;&nbsp; </label>
+               <input id="MV_ParamID_BkColor" type="text" value="0,0,0"/&nbsp;&nbsp;&nbsp;
+               </p>
+            <p>
+               &nbsp;<input type="button" value="Render" 
+                       onclick="return window.VM_Manager.GenerateImage();" 
+                       style="height: 24px; width: 80px; margin-top: 0px;"/></p>
+               <img id="MV_TargetImage" 
+                  align="middle" onclick="return MV_TargetImage_onclick()" border="5" 
+               style="border-style: ridge; border-width: thick" /></p>
+        </div>
+    </div>
+</body>
+</html>

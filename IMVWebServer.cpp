@@ -250,7 +250,7 @@ ________________________________________________________________________________
 Create Random Materials
 ________________________________________________________________________________
 */
-void createRandomMaterials( CudaKernel* gpuKernel )
+void createMaterials( CudaKernel* gpuKernel, const bool& random )
 {
    float4 specular;
    // Materials
@@ -258,16 +258,16 @@ void createRandomMaterials( CudaKernel* gpuKernel )
    specular.w = 1.0f;
    for( int i(0); i<NB_MAX_MATERIALS; ++i ) 
    {
-      specular.x = 1.f;
-      specular.y = 50.f;
+      specular.x = 0.5f;
+      specular.y = 100.f;
       specular.z = 0.f;
       specular.w = 0.1f;
 
       float innerIllumination = 0.f;
 
       // Transparency & refraction
-      float refraction = (i>=20 && i<80 && i%2==0)   ? 1.f+rand()%100/100.f : 0.f; 
-      float transparency = (i>=20 && i<80 && i%2==0) ? 0.9f+rand()%10/100.f : 0.f; 
+      float refraction = (i>=20 && i<80 && i%2==0)   ? 1.66f : 0.f; 
+      float transparency = (i>=20 && i<80 && i%2==0) ? 0.7f : 0.f; 
       float reflection = (i>=20 && i<80 && i%3==0)   ? rand()%10/100.f : 0.f; 
 
       int   textureId = MATERIAL_NONE;
@@ -279,30 +279,34 @@ void createRandomMaterials( CudaKernel* gpuKernel )
       g = .5f+rand()%50/100.f;
       b = .5f+rand()%50/100.f;
       
-#if 0
-      // Proteins
-      switch( i%10 )
+      if( random )
       {
-      case  0: r = 0.8f;        g = 0.7f;        b = 0.7f;         break; 
-      case  1: r = 0.7f;        g = 0.7f;        b = 0.7f;         break; // C Gray
-      case  2: r = 174.f/255.f; g = 174.f/255.f; b = 233.f/255.f;  break; // N Blue
-      case  3: r = 0.9f;        g = 0.4f;        b = 0.4f;         break; // O 
-      case  4: r = 0.9f;        g = 0.9f;        b = 0.9f;         break; // H White
-      case  5: r = 0.0f;        g = 0.5f;        b = 0.6f;         break; // B
-      case  6: r = 0.5f;        g = 0.5f;        b = 0.7f;         break; // F Blue
-      case  7: r = 0.8f;        g = 0.6f;        b = 0.3f;         break; // P
-      case  8: r = 241.f/255.f; g = 196.f/255.f; b = 107.f/255.f;  break; // S Yellow
-      case  9: r = 0.9f;        g = 0.3f;        b = 0.3f;         break; // V
+         switch( i )
+         {
+         case  100: r = 0.7f; g = 0.6f; b = 0.5f;  reflection = 0.f; break;
+         case  101: r = 92.f/255.f; g= 93.f/255.f; b=150.f/255.f;  refraction = 1.33f; transparency=0.9f; break;
+         case  102: r = 241.f/255.f; g = 196.f/255.f; b = 107.f/255.f; reflection = 0.1f; break;
+         case  103: r = 127.f/255.f; g=127.f/255.f; b=127.f/255.f; reflection = 0.7f; break;
+         }
       }
-#else
-      switch( i )
+      else
       {
-      case  100: r = 1.f; g = 1.f; b = 1.f;  reflection = 0.f; break;
-      case  101: r = 92.f/255.f; g= 93.f/255.f; b=150.f/255.f;  refraction = 1.33f; transparency=0.9f; break;
-      case  102: r = 241.f/255.f; g = 196.f/255.f; b = 107.f/255.f; reflection = 0.1f; break;
-      case  103: r = 127.f/255.f; g=127.f/255.f; b=127.f/255.f; reflection = 0.7f; break;
+         // Proteins
+         switch( i%10 )
+         {
+         case  0: r = 0.8f;        g = 0.7f;        b = 0.7f;         break; 
+         case  1: r = 0.7f;        g = 0.7f;        b = 0.7f;         break; // C Gray
+         case  2: r = 174.f/255.f; g = 174.f/255.f; b = 233.f/255.f;  break; // N Blue
+         case  3: r = 0.9f;        g = 0.4f;        b = 0.4f;         break; // O 
+         case  4: r = 0.9f;        g = 0.9f;        b = 0.9f;         break; // H White
+         case  5: r = 0.0f;        g = 0.5f;        b = 0.6f;         break; // B
+         case  6: r = 0.5f;        g = 0.5f;        b = 0.7f;         break; // F Blue
+         case  7: r = 0.8f;        g = 0.6f;        b = 0.3f;         break; // P
+         case  8: r = 241.f/255.f; g = 196.f/255.f; b = 107.f/255.f;  break; // S Yellow
+         case  9: r = 0.9f;        g = 0.3f;        b = 0.3f;         break; // V
+         }
       }
-#endif // 0
+
 
       switch(i)
       {
@@ -336,12 +340,12 @@ void createRandomMaterials( CudaKernel* gpuKernel )
    }
 }
 
-void initializeKernel()
+void initializeKernel( const bool& random )
 {
    gpuKernel = new CudaKernel(false, true);
    gpuKernel->setSceneInfo( gSceneInfo );
    gpuKernel->initBuffers();
-   createRandomMaterials( gpuKernel );
+   createMaterials( gpuKernel, random );
 }
 
 void destroyKernel()
@@ -498,7 +502,7 @@ void renderChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, c
    // --------------------------------------------------------------------------------
    // Create 3D Scene
    // --------------------------------------------------------------------------------
-   float3 columnSize    = { 400.f, 40.f, 200.f };
+   float3 columnSize    = { 400.f, 40.f, 400.f };
    float3 columnSpacing = { 440.f, 40.f, 800.f };
    float3 size = {500.f,500.f,500.f};
    int material = 100;
@@ -516,43 +520,45 @@ void renderChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, c
       if(!update) gChartStartIndex = gNbPrimitives;
 
       gpuKernel->setPrimitive( gNbPrimitives, 
-          -sideSize, 0.f, -sideSize, 
-           sideSize, 0.f, -sideSize,
-           sideSize, 0.f,  sideSize,
-                0.f, 0.f,       0.f, 
+          -sideSize, -10.f, -sideSize, 
+           sideSize, -10.f, -sideSize,
+           sideSize, -10.f,  sideSize,
+                0.f, -10.f,       0.f, 
             material,  1,         1);
 
       gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+1;
       gpuKernel->setPrimitive( gNbPrimitives, 
-           sideSize, 0.f,  sideSize, 
-          -sideSize, 0.f,  sideSize,
-          -sideSize, 0.f, -sideSize,
+           sideSize, -10.f,  sideSize, 
+          -sideSize, -10.f,  sideSize,
+          -sideSize, -10.f, -sideSize,
                 0.f, 0.f,       0.f, 
             material,  1,         1);
 
       // Wall
       gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+2;
       gpuKernel->setPrimitive( gNbPrimitives, 
-          -sideSize,      0.f,  sideSize, 
-           sideSize,      0.f,  sideSize,
-           sideSize, sideSize,  sideSize,
+          -sideSize,         -10.f,  sideSize, 
+           sideSize,         -10.f,  sideSize,
+           sideSize, sideSize-10.f,  sideSize,
                 0.f,      0.f,       0.f, 
             material,       1,         1);
       
       gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+3;
       gpuKernel->setPrimitive( gNbPrimitives, 
-           sideSize, sideSize,  sideSize, 
-          -sideSize, sideSize,  sideSize,
-          -sideSize,      0.f,  sideSize,
+           sideSize, sideSize-10.f,  sideSize, 
+          -sideSize, sideSize-10.f,  sideSize,
+          -sideSize,         -10.f,  sideSize,
                 0.f,      0.f,       0.f, 
             material,       1,         1);
 
       // Lamp
       gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex+4;
-      gpuKernel->setPrimitive( gNbPrimitives,  10000, 5000, -5000, 50.f, 0.f, 0.f, 127, 1 , 1);
+      gpuKernel->setPrimitive( gNbPrimitives,  5000, 2000, -5000, 50.f, 0.f, 0.f, 129, 1 , 1);
+      /*
       // Lamp
       gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex+5;
       gpuKernel->setPrimitive( gNbPrimitives, -10000, 5000, -5000, 50.f, 0.f, 0.f, 128, 1 , 1);
+      */
 
       // Build Chart
       int index(0);
@@ -655,6 +661,26 @@ void renderChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, c
          }
          material++;
       }
+
+      material = 100;
+      // Right Side
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+index+15;
+      gpuKernel->setPrimitive( gNbPrimitives, 
+           sideSize,         -10.f, -sideSize, 
+           sideSize,         -10.f,  sideSize+10.f,
+           sideSize, sideSize-10.f,  sideSize+10.f,
+                0.f,      0.f,       0.f, 
+            material,       1,         1);
+
+      // Left Side
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+index+16;
+      gpuKernel->setPrimitive( gNbPrimitives, 
+           -sideSize,         -10.f, -sideSize, 
+           -sideSize,         -10.f,  sideSize+10.f,
+           -sideSize, sideSize-10.f,  sideSize+10.f,
+                0.f,      0.f,       0.f, 
+            material,       1,         1);
+
       gNbBoxes = gpuKernel->compactBoxes(update);
 
       // Post processing effects
@@ -667,7 +693,7 @@ void renderChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, c
       sceneInfo.shadowsEnabled.x = (postProcessingInfo.type.x != 2);
 
       // Rotation
-      gpuKernel->rotatePrimitives( gRotationCenter, chartInfo.rotationAngles, 0, gNbBoxes );
+      //gpuKernel->rotatePrimitives( gRotationCenter, chartInfo.rotationAngles, 0, gNbBoxes );
 
       // Background color
       sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
@@ -728,10 +754,17 @@ void parseChart( Lacewing::Webserver::Request& request, std::string& requestStr,
          {
             for( int i(0); i<10; ++i )
             {
-               chartInfo.values[s].push_back(static_cast<float>(rand()%30));
+               chartInfo.values[s].push_back(10.f+static_cast<float>(rand()%30));
             }
          }
 #endif 
+      }
+      else if ( strcmp(p->Name(),"distance") == 0 )
+      {
+         // --------------------------------------------------------------------------------
+         // View Distance
+         // --------------------------------------------------------------------------------
+         chartInfo.viewPos.z = static_cast<float>(atoi(p->Value()));
       }
       else if ( strcmp(p->Name(),"rotation") == 0 )
       {
@@ -1140,7 +1173,7 @@ void parseIRT( Lacewing::Webserver::Request& request, std::string& requestStr, c
       requestStr += p->Name();
       requestStr += "=";
       requestStr += p->Value();
-      if( strcmp(p->Name(),"irt")==0 )
+      if( strcmp(p->Name(),"model")==0 )
       {
          // --------------------------------------------------------------------------------
          // Molecule
@@ -1229,22 +1262,19 @@ void parseURL( Lacewing::Webserver::Request& request )
    {
       if(!strcmp(p->Name(), "molecule"))
       {
-         if( gCurrentUsecase != ucPDB || strcmp(gCurrentUsecaseValue.c_str(),p->Value()))
-         {
-            destroyKernel();
-            initializeKernel();
-            gCurrentUsecase = ucPDB;
-            gCurrentUsecaseValue = p->Value();
-            update=true;
-         }
+         destroyKernel();
+         initializeKernel(false);
+         gCurrentUsecase = ucPDB;
+         gCurrentUsecaseValue = p->Value();
+         update=true;
          parsePDB( request, requestStr, update );
       }
-      else if(!strcmp(p->Name(), "irt"))
+      else if(!strcmp(p->Name(), "model"))
       {
          if( gCurrentUsecase != ucIRT || strcmp(gCurrentUsecaseValue.c_str(),p->Value()) )
          {
             destroyKernel();
-            initializeKernel();
+            initializeKernel(true);
             gCurrentUsecase = ucIRT;
             gCurrentUsecaseValue = p->Value();
             update=true;
@@ -1253,10 +1283,10 @@ void parseURL( Lacewing::Webserver::Request& request )
       }
       else
       {
-         if( gCurrentUsecase != ucIRT )
+         if( gCurrentUsecase != ucChart )
          {
             destroyKernel();
-            initializeKernel();
+            initializeKernel(true);
             gCurrentUsecase = ucChart;
             update=true;
          }

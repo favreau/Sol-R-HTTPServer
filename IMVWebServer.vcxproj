@@ -149,6 +149,9 @@
     <ClCompile Include="IMVWebServer.cpp" />
     <ClCompile Include="JpegEncoder.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="html\Charts\index.html" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
