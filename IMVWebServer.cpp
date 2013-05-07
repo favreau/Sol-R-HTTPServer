@@ -264,6 +264,7 @@ void createMaterials( CudaKernel* gpuKernel, const bool& random )
       specular.w = 0.1f;
 
       float innerIllumination = 0.f;
+      bool fastTransparency = false;
 
       // Transparency & refraction
       float refraction = (i>=20 && i<80 && i%2==0)   ? 1.66f : 0.f; 
@@ -305,6 +306,7 @@ void createMaterials( CudaKernel* gpuKernel, const bool& random )
          case  8: r = 241.f/255.f; g = 196.f/255.f; b = 107.f/255.f;  break; // S Yellow
          case  9: r = 0.9f;        g = 0.3f;        b = 0.3f;         break; // V
          }
+         fastTransparency = true;
       }
 
 
@@ -336,7 +338,7 @@ void createMaterials( CudaKernel* gpuKernel, const bool& random )
          textureId,
          specular.x, specular.y, specular.w, 
          innerIllumination, 5.f, gSceneInfo.viewDistance.x,
-         false);
+         fastTransparency);
    }
 }
 
@@ -918,7 +920,11 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
       if( update )
       {
          PDBReader reader;
-         float4 size = reader.loadAtomsFromFile(fileName,*gpuKernel,static_cast<GeometryType>(moleculeInfo.structureType),50.f,20.f,0,20.f,false);
+         float4 size = reader.loadAtomsFromFile(
+            fileName,*gpuKernel,
+            static_cast<GeometryType>(moleculeInfo.structureType),50.f,20.f,
+            moleculeInfo.scheme,
+            20.f,false);
       }
       gNbBoxes = gpuKernel->compactBoxes(update);
 
@@ -943,7 +949,7 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
          sceneInfo.pathTracingIteration.x = i;
          gpuKernel->setPostProcessingInfo( postProcessingInfo );
          gpuKernel->setSceneInfo( sceneInfo );
-         cameraAngles = moleculeInfo.rotationAngles;
+         //cameraAngles = moleculeInfo.rotationAngles;
          gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
          gpuKernel->render_begin(0.f);
          gpuKernel->render_end((char*)image);
