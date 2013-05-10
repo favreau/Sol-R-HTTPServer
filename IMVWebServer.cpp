@@ -34,6 +34,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <fstream>
+#include <algorithm> 
 
 #include <Consts.h>
 #include <PDBReader.h>
@@ -123,7 +124,7 @@ unsigned int gWindowDepth  = 4;
 float4 gBkGrey  = {0.5f, 0.5f, 0.5f, 0.f};
 float4 gBkBlack = {0.f, 0.f, 0.f, 0.f};
 int   gTotalPathTracingIterations = 100;
-int4  misc = {otJPEG,0,0,2};
+int4  misc = {otJPEG,0,0,0};
 
 SceneInfo gSceneInfo = 
 { 
@@ -133,7 +134,7 @@ SceneInfo gSceneInfo =
    20,                         // nbRayIterations
    3.f,                        // transparentColor
    500000.f,                   // viewDistance
-   0.5f,                       // shadowIntensity
+   0.3f,                       // shadowIntensity
    20.f,                       // width3DVision
    gBkGrey,                    // backgroundColor
    false,                      // supportFor3DVision
@@ -173,9 +174,9 @@ float3 gViewAngles = { 0.f, 0.f, 0.f };
 PostProcessingInfo gPostProcessingInfo = 
 { 
    ppe_none, 
-   1000.f, 
-   5000.f, 
-   60 
+   0.f, 
+   500.f, 
+   200 
 };
 
 // ----------------------------------------------------------------------
@@ -258,7 +259,7 @@ void createMaterials( CudaKernel* gpuKernel, const bool& random )
    specular.w = 1.0f;
    for( int i(0); i<NB_MAX_MATERIALS; ++i ) 
    {
-      specular.x = 0.5f;
+      specular.x = 0.2f;
       specular.y = 100.f;
       specular.z = 0.f;
       specular.w = 0.1f;
@@ -284,7 +285,7 @@ void createMaterials( CudaKernel* gpuKernel, const bool& random )
       {
          switch( i )
          {
-         case  100: r = 0.7f; g = 0.6f; b = 0.5f;  reflection = 0.f; break;
+         case  100: r = 0.7f; g = 0.6f; b = 0.5f;  reflection = 0.1f; break;
          case  101: r = 92.f/255.f; g= 93.f/255.f; b=150.f/255.f;  refraction = 1.33f; transparency=0.9f; break;
          case  102: r = 241.f/255.f; g = 196.f/255.f; b = 107.f/255.f; reflection = 0.1f; break;
          case  103: r = 127.f/255.f; g=127.f/255.f; b=127.f/255.f; reflection = 0.7f; break;
@@ -490,20 +491,274 @@ void saveToJPeg( Lacewing::Webserver::Request& request, const std::string& filen
    }
 }
 
-void buildChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo )
-{
-}
-
-void renderChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, const bool& update )
+void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, const bool& update )
 {
    float3 cameraOrigin = chartInfo.viewPos;
    float3 cameraTarget = chartInfo.viewPos;
    cameraTarget.z += 5000.f;
    float3 cameraAngles = gViewAngles;
 
-   // --------------------------------------------------------------------------------
-   // Create 3D Scene
-   // --------------------------------------------------------------------------------
+   float3 columnSize    = { 400.f, 40.f, 400.f };
+   float3 columnSpacing = { 400.f, 40.f, 800.f };
+   float3 size = {500.f,500.f,500.f};
+   int material = 100;
+
+   SceneInfo sceneInfo = chartInfo.sceneInfo;
+   size_t len(sceneInfo.width.x*sceneInfo.height.x*gWindowDepth);
+   char* image = new char[len];
+   if( image != nullptr )
+   {
+      long renderingTime = GetTickCount();
+      int index(0);
+
+      // Ground
+      float sideSize = columnSpacing.x*chartInfo.values[0].size()*0.9f;
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+      if(!update) gChartStartIndex = gNbPrimitives;
+      gpuKernel->setPrimitive( gNbPrimitives, 
+          -sideSize, -10.f, -sideSize, 
+           sideSize, -10.f, -sideSize,
+           sideSize, -10.f,  sideSize,
+                0.f, -10.f,       0.f, 
+            material,  1,         1);
+
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+      gpuKernel->setPrimitive( gNbPrimitives, 
+           sideSize, -10.f,  sideSize, 
+          -sideSize, -10.f,  sideSize,
+          -sideSize, -10.f, -sideSize,
+                0.f, 0.f,       0.f, 
+            material,  1,         1);
+
+      // Wall
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+      gpuKernel->setPrimitive( gNbPrimitives, 
+          -sideSize,         -10.f,  sideSize, 
+           sideSize,         -10.f,  sideSize,
+           sideSize, sideSize-10.f,  sideSize,
+                0.f,      0.f,       0.f, 
+            material,       1,         1);
+      
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+      gpuKernel->setPrimitive( gNbPrimitives, 
+           sideSize, sideSize-10.f,  sideSize, 
+          -sideSize, sideSize-10.f,  sideSize,
+          -sideSize,         -10.f,  sideSize,
+                0.f,      0.f,       0.f, 
+            material,       1,         1);
+
+      // Right Side
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+      gpuKernel->setPrimitive( gNbPrimitives, 
+           sideSize,         -10.f, -sideSize, 
+           sideSize,         -10.f,  sideSize+10.f,
+           sideSize, sideSize-10.f,  sideSize+10.f,
+                0.f,      0.f,       0.f, 
+            material,       1,         1);
+
+      // Left Side
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+      gpuKernel->setPrimitive( gNbPrimitives, 
+           -sideSize,         -10.f, -sideSize, 
+           -sideSize,         -10.f,  sideSize+10.f,
+           -sideSize, sideSize-10.f,  sideSize+10.f,
+                0.f,      0.f,       0.f, 
+            material,       1,         1);
+
+      // Lamp
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex+(index++);
+      //gpuKernel->setPrimitive( gNbPrimitives,  5000, 2000, -5000, 50.f, 0.f, 0.f, 129, 1 , 1);
+      gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, static_cast<float>(rand()%10000-5000), 50.f, 0.f, 0.f, 129, 1 , 1);
+
+      // Build Chart
+      for( int s(0); s<NB_MAX_SERIES; ++s )
+      {
+         material = 20+s*5;
+         float x=-(columnSpacing.x*chartInfo.values[s].size())/2.f + columnSpacing.x/4.f;
+
+         std::vector<float>::const_iterator it = chartInfo.values[s].begin();
+         float value=(*it);
+         ++it;
+         for( int i(0); i<chartInfo.values[s].size()-1; ++i )
+         {
+            float ymin = (value< (*it)) ? value : (*it);
+
+            float offsetZ = s*columnSpacing.z - ( NB_MAX_SERIES * columnSpacing.z )/2.f;
+            
+            // Front
+            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+            gpuKernel->setPrimitive( gNbPrimitives, 
+                            x,                0.f, offsetZ, 
+               x+columnSize.x,                0.f, offsetZ,
+               x+columnSize.x, ymin*columnSize.y, offsetZ,
+                          0.f,                0.f, 0.f, 
+                     material,                  1,   1);
+            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+            gpuKernel->setPrimitive( gNbPrimitives, 
+               x+columnSize.x, ymin*columnSize.y, offsetZ,
+                            x, ymin*columnSize.y, offsetZ,
+                            x,                0.f, offsetZ, 
+                          0.f,                0.f, 0.f, 
+                     material,                  1,   1);
+            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+            if( value < (*it ) )
+            {
+               gpuKernel->setPrimitive( gNbPrimitives, 
+                               x, value*columnSize.y, offsetZ, 
+                  x+columnSize.x, value*columnSize.y, offsetZ,
+                  x+columnSize.x, (*it)*columnSize.y, offsetZ,
+                             0.f,                0.f, 0.f, 
+                        material,                  1,   1);
+            }
+            else
+            {
+               gpuKernel->setPrimitive( gNbPrimitives, 
+                               x, value*columnSize.y, offsetZ, 
+                               x, (*it)*columnSize.y, offsetZ,
+                  x+columnSize.x, (*it)*columnSize.y, offsetZ,
+                             0.f,                0.f, 0.f, 
+                        material,                  1,   1);
+            }
+
+            // Back
+            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+            gpuKernel->setPrimitive( gNbPrimitives, 
+                            x,                0.f, columnSize.z + offsetZ, 
+               x+columnSize.x,                0.f, columnSize.z + offsetZ,
+               x+columnSize.x,  ymin*columnSize.y, columnSize.z + offsetZ,
+                          0.f,                0.f, 0.f, 
+                     material,                  1,   1);
+            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+            gpuKernel->setPrimitive( gNbPrimitives, 
+               x+columnSize.x, ymin*columnSize.y, columnSize.z + offsetZ,
+                            x, ymin*columnSize.y, columnSize.z + offsetZ,
+                            x,               0.f, columnSize.z + offsetZ, 
+                          0.f,               0.f, 0.f, 
+                     material,                 1,   1);
+            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+            if( value < (*it ) )
+            {
+               gpuKernel->setPrimitive( gNbPrimitives, 
+                               x, value*columnSize.y, columnSize.z + offsetZ, 
+                  x+columnSize.x, value*columnSize.y, columnSize.z + offsetZ,
+                  x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                             0.f,                0.f, 0.f, 
+                        material,                  1,   1);
+            }
+            else
+            {
+               gpuKernel->setPrimitive( gNbPrimitives, 
+                               x, value*columnSize.y, columnSize.z + offsetZ, 
+                               x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                  x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                             0.f,                0.f, 0.f, 
+                        material,                  1,   1);
+            }
+
+            //top
+            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+            gpuKernel->setPrimitive( gNbPrimitives, 
+                            x, value*columnSize.y, offsetZ, 
+               x+columnSize.x, (*it)*columnSize.y, offsetZ,
+               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                          0.f,                0.f, 0.f, 
+                     material,                  1,   1);
+            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+            gpuKernel->setPrimitive( gNbPrimitives, 
+               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                            x, value*columnSize.y, columnSize.z + offsetZ,
+                            x, value*columnSize.y, offsetZ, 
+                          0.f,                0.f, 0.f, 
+                     material,                  1,   1);
+
+            // Sides
+            if( i==0 )
+            {
+               gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+               gpuKernel->setPrimitive( gNbPrimitives, 
+                               x,                0.f, offsetZ, 
+                               x, value*columnSize.y, offsetZ,
+                               x, value*columnSize.y, columnSize.z + offsetZ,
+                             0.f,                0.f, 0.f, 
+                        material,                  1,   1);
+               gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+               gpuKernel->setPrimitive( gNbPrimitives, 
+                               x, value*columnSize.y, columnSize.z + offsetZ, 
+                               x,                0.f, columnSize.z + offsetZ,
+                               x,                0.f, offsetZ,
+                             0.f,                0.f, 0.f, 
+                        material,                  1,   1);
+            }
+
+            if( i==chartInfo.values[s].size()-2 )
+            {
+               gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+               gpuKernel->setPrimitive( gNbPrimitives, 
+                  x+columnSize.x,                0.f, offsetZ, 
+                  x+columnSize.x, (*it)*columnSize.y, offsetZ,
+                  x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                             0.f,                0.f, 0.f, 
+                        material,                  1,   1);
+               gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+               gpuKernel->setPrimitive( gNbPrimitives, 
+                  x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ, 
+                  x+columnSize.x,                0.f, columnSize.z + offsetZ,
+                  x+columnSize.x,                0.f, offsetZ,
+                             0.f,                0.f, 0.f, 
+                        material,                  1,   1);
+            }
+
+            value = (*it);
+            x += columnSpacing.x;
+            ++it;
+         }
+         material++;
+      }
+
+      gNbBoxes = gpuKernel->compactBoxes(update);
+
+      // Post processing effects
+      PostProcessingInfo postProcessingInfo = chartInfo.postProcessingInfo;
+      postProcessingInfo.param1.x = -cameraTarget.z;
+      //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
+      //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
+
+      // Shadows
+      sceneInfo.shadowsEnabled.x = (postProcessingInfo.type.x != 2);
+
+      // Rotation
+      //gpuKernel->rotatePrimitives( gRotationCenter, chartInfo.rotationAngles, 0, gNbBoxes );
+
+      // Background color
+      sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
+
+      // Rendering process
+      for( int i(0); i<sceneInfo.maxPathTracingIterations.x; ++i)
+      {
+         sceneInfo.pathTracingIteration.x = i;
+         gpuKernel->setPostProcessingInfo( postProcessingInfo );
+         gpuKernel->setSceneInfo( sceneInfo );
+         cameraAngles = chartInfo.rotationAngles;
+         gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
+         gpuKernel->render_begin(0.f);
+         gpuKernel->render_end((char*)image);
+      }
+      std::string filename = "chart.jpg";
+      saveToJPeg( request, filename, sceneInfo, image );
+
+      // Release resources
+      delete image;
+      image = nullptr;
+   }
+}
+
+void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, const bool& update )
+{
+   float3 cameraOrigin = chartInfo.viewPos;
+   float3 cameraTarget = chartInfo.viewPos;
+   cameraTarget.z += 5000.f;
+   float3 cameraAngles = gViewAngles;
+
    float3 columnSize    = { 400.f, 40.f, 400.f };
    float3 columnSpacing = { 440.f, 40.f, 800.f };
    float3 size = {500.f,500.f,500.f};
@@ -555,12 +810,8 @@ void renderChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, c
 
       // Lamp
       gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex+4;
-      gpuKernel->setPrimitive( gNbPrimitives,  5000, 2000, -5000, 50.f, 0.f, 0.f, 129, 1 , 1);
-      /*
-      // Lamp
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex+5;
-      gpuKernel->setPrimitive( gNbPrimitives, -10000, 5000, -5000, 50.f, 0.f, 0.f, 128, 1 , 1);
-      */
+      //gpuKernel->setPrimitive( gNbPrimitives,  5000, 2000, -5000, 50.f, 0.f, 0.f, 129, 1 , 1);
+      gpuKernel->setPrimitive( gNbPrimitives, static_cast<float>(rand()%10000-5000), 5000.f, static_cast<float>(rand()%10000-5000), 50.f, 0.f, 0.f, 129, 1 , 1);
 
       // Build Chart
       int index(0);
@@ -688,8 +939,8 @@ void renderChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, c
       // Post processing effects
       PostProcessingInfo postProcessingInfo = chartInfo.postProcessingInfo;
       postProcessingInfo.param1.x = -cameraTarget.z;
-      postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
-      postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
+      //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
+      //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
 
       // Shadows
       sceneInfo.shadowsEnabled.x = (postProcessingInfo.type.x != 2);
@@ -717,6 +968,15 @@ void renderChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, c
       // Release resources
       delete image;
       image = nullptr;
+   }
+}
+
+void renderChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, const bool& update )
+{
+   switch( rand()%2 )
+   {
+   case 0: buildAreaChart( request, chartInfo, true ); break;
+   case 1: buildColumnChart( request, chartInfo, true ); break;
    }
 }
 
@@ -820,21 +1080,18 @@ void parseChart( Lacewing::Webserver::Request& request, std::string& requestStr,
       else if ( strcmp(p->Name(),"postprocessing") == 0 )
       {
          // --------------------------------------------------------------------------------
-         // structure
+         // Post Processing
          // --------------------------------------------------------------------------------
          int postProcessing = atoi(p->Value());
          if( postProcessing<0 || postProcessing>2 ) postProcessing = 0;
-         chartInfo.chartType = postProcessing;
+         chartInfo.postProcessingInfo.type.x = postProcessing;
       }
 
       p = p->Next();
       if(p != nullptr) requestStr += "&";
    }
 
-   // Load Molecule from file
-   buildChart( request, chartInfo );
-
-   // Render molecule
+   // Render Chart
    renderChart( request, chartInfo, update );
 }
 
@@ -938,7 +1195,7 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
       sceneInfo.shadowsEnabled.x = (postProcessingInfo.type.x != 2);
 
       // Rotation
-      gpuKernel->rotatePrimitives( gRotationCenter, moleculeInfo.rotationAngles, 0, gNbBoxes );
+      //gpuKernel->rotatePrimitives( gRotationCenter, moleculeInfo.rotationAngles, 0, gNbBoxes );
 
       // Background color
       sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
@@ -949,7 +1206,7 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
          sceneInfo.pathTracingIteration.x = i;
          gpuKernel->setPostProcessingInfo( postProcessingInfo );
          gpuKernel->setSceneInfo( sceneInfo );
-         //cameraAngles = moleculeInfo.rotationAngles;
+         cameraAngles = moleculeInfo.rotationAngles;
          gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
          gpuKernel->render_begin(0.f);
          gpuKernel->render_end((char*)image);
@@ -968,8 +1225,8 @@ void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, c
    LOG_INFO(1, "parsePDB" );
    MoleculeInfo moleculeInfo;
    moleculeInfo.moleculeId = gProteinNames[gCurrentProtein];
-   moleculeInfo.structureType = rand()%5;
-   moleculeInfo.scheme=rand()%3;
+   moleculeInfo.structureType = 0;
+   moleculeInfo.scheme=1;
    moleculeInfo.viewPos = gViewPos;
    moleculeInfo.rotationAngles.x = 0.f;
    moleculeInfo.rotationAngles.y = 0.f;
@@ -1059,7 +1316,7 @@ void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, c
          case  3: gWindowWidth=1920; gWindowHeight=1920; break;
          case  4: gWindowWidth=2048; gWindowHeight=2048; break;
          case  5: gWindowWidth=4096; gWindowHeight=4096; break;
-         default: gWindowWidth=768;  gWindowHeight=768;  
+         default: gWindowWidth=512;  gWindowHeight=512;  
          }
          moleculeInfo.sceneInfo.width.x  = gWindowWidth;
          moleculeInfo.sceneInfo.height.x = gWindowHeight;
@@ -1088,7 +1345,7 @@ void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, c
    renderPDB( request, moleculeInfo, update );
 
    // Store information about rendered molecule
-   LOG_INFO(1, requestStr);
+   LOG_INFO(1, request.GetAddress().ToString() << " - " << request.URL() << requestStr );
    gRequests[request.GetAddress().ToString()] = requestStr;
    gNbCalls++;
 }
@@ -1268,11 +1525,14 @@ void parseURL( Lacewing::Webserver::Request& request )
    {
       if(!strcmp(p->Name(), "molecule"))
       {
-         destroyKernel();
-         initializeKernel(false);
-         gCurrentUsecase = ucPDB;
-         gCurrentUsecaseValue = p->Value();
-         update=true;
+         if( gCurrentUsecase != ucPDB  || strcmp(gCurrentUsecaseValue.c_str(),p->Value()) )
+         {
+            destroyKernel();
+            initializeKernel(false);
+            gCurrentUsecase = ucPDB;
+            gCurrentUsecaseValue = p->Value();
+            update=true;
+         }
          parsePDB( request, requestStr, update );
       }
       else if(!strcmp(p->Name(), "model"))
@@ -1289,7 +1549,7 @@ void parseURL( Lacewing::Webserver::Request& request )
       }
       else
       {
-         if( gCurrentUsecase != ucChart )
+         //if( gCurrentUsecase != ucChart )
          {
             destroyKernel();
             initializeKernel(true);
@@ -1300,7 +1560,7 @@ void parseURL( Lacewing::Webserver::Request& request )
       }
    }
    // Store information about rendered molecule
-   LOG_INFO(1, requestStr);
+   LOG_INFO(1, request.GetAddress().ToString() << " - " << request.URL() << requestStr );
    gRequests[request.GetAddress().ToString()] = requestStr;
    gNbCalls++;
 }
@@ -1362,7 +1622,6 @@ void onGet(Lacewing::Webserver &Webserver, Lacewing::Webserver::Request &request
          ++iter;
       }
    }
-   LOG_INFO(1, request.URL() );
 }
 
 int main(int argc, char * argv[])
