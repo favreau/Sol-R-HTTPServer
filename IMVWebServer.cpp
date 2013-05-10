@@ -345,7 +345,7 @@ void createMaterials( CudaKernel* gpuKernel, const bool& random )
 
 void initializeKernel( const bool& random )
 {
-   gpuKernel = new CudaKernel(false, true);
+   gpuKernel = new CudaKernel(false, 460, 0, 0);
    gpuKernel->setSceneInfo( gSceneInfo );
    gpuKernel->initBuffers();
    createMaterials( gpuKernel, random );
