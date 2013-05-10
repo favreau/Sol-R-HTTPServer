@@ -174,8 +174,8 @@ float3 gViewAngles = { 0.f, 0.f, 0.f };
 PostProcessingInfo gPostProcessingInfo = 
 { 
    ppe_none, 
-   0.f, 
-   500.f, 
+   10000.f, 
+   50.f, 
    200 
 };
 
@@ -268,9 +268,9 @@ void createMaterials( CudaKernel* gpuKernel, const bool& random )
       bool fastTransparency = false;
 
       // Transparency & refraction
-      float refraction = (i>=20 && i<80 && i%2==0)   ? 1.66f : 0.f; 
-      float transparency = (i>=20 && i<80 && i%2==0) ? 0.7f : 0.f; 
-      float reflection = (i>=20 && i<80 && i%3==0)   ? rand()%10/100.f : 0.f; 
+      float refraction = (i>=20 && i<80 && i%4==0)   ? 1.66f : 0.f; 
+      float transparency = (i>=20 && i<80 && i%4==0) ? 0.7f : 0.f; 
+      float reflection = (i>=20 && i<80 && i%4==1)   ? rand()%10/100.f : 0.f; 
 
       int   textureId = MATERIAL_NONE;
       float r,g,b;
@@ -566,9 +566,8 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
             material,       1,         1);
 
       // Lamp
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex+(index++);
-      //gpuKernel->setPrimitive( gNbPrimitives,  5000, 2000, -5000, 50.f, 0.f, 0.f, 129, 1 , 1);
-      gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, static_cast<float>(rand()%10000-5000), 50.f, 0.f, 0.f, 129, 1 , 1);
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+(index++);
+      gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, static_cast<float>(rand()%10000-5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
 
       // Build Chart
       for( int s(0); s<NB_MAX_SERIES; ++s )
@@ -719,7 +718,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
 
       // Post processing effects
       PostProcessingInfo postProcessingInfo = chartInfo.postProcessingInfo;
-      postProcessingInfo.param1.x = -cameraTarget.z;
+      postProcessingInfo.param2.x = 200.f;
       //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
       //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
 
@@ -809,9 +808,8 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
             material,       1,         1);
 
       // Lamp
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex+4;
-      //gpuKernel->setPrimitive( gNbPrimitives,  5000, 2000, -5000, 50.f, 0.f, 0.f, 129, 1 , 1);
-      gpuKernel->setPrimitive( gNbPrimitives, static_cast<float>(rand()%10000-5000), 5000.f, static_cast<float>(rand()%10000-5000), 50.f, 0.f, 0.f, 129, 1 , 1);
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+4;
+      gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, static_cast<float>(rand()%10000-5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
 
       // Build Chart
       int index(0);
@@ -938,7 +936,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
 
       // Post processing effects
       PostProcessingInfo postProcessingInfo = chartInfo.postProcessingInfo;
-      postProcessingInfo.param1.x = -cameraTarget.z;
+      postProcessingInfo.param2.x = 200.f;
       //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
       //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
 
@@ -1171,8 +1169,8 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
       long renderingTime = GetTickCount();
 
       // Lamp
-      gNbPrimitives = gpuKernel->addPrimitive( ptSphere );
-      gpuKernel->setPrimitive( gNbPrimitives, 20000.f, 14000.f, -50000.f, 500.f, 0.f, 0.f, 129, 1 , 1);
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex;
+      gpuKernel->setPrimitive( gNbPrimitives,  -5000.f, 5000.f, -5000.f, 50.f, 0.f, 0.f, 129, 1 , 1);
 
       if( update )
       {
@@ -1187,9 +1185,9 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
 
       // Post processing effects
       PostProcessingInfo postProcessingInfo = moleculeInfo.postProcessingInfo;
-      postProcessingInfo.param1.x = -cameraTarget.z;
-      postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
-      postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
+      postProcessingInfo.param2.x = 200.f;
+      //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
+      //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
 
       // Shadows
       sceneInfo.shadowsEnabled.x = (postProcessingInfo.type.x != 2);
@@ -1324,7 +1322,7 @@ void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, c
       else if ( strcmp(p->Name(),"postprocessing") == 0 )
       {
          // --------------------------------------------------------------------------------
-         // structure
+         // Post Processing
          // --------------------------------------------------------------------------------
          int postProcessing = atoi(p->Value());
          if( postProcessing<0 || postProcessing>2 ) postProcessing = 0;
@@ -1372,8 +1370,8 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
       long renderingTime = GetTickCount();
 
       // Lamp
-      gNbPrimitives = gpuKernel->addPrimitive( ptSphere );
-      gpuKernel->setPrimitive( gNbPrimitives, -8000.f, 8000.f, -8000.f, 10.f, 0.f, 0.f, 129, 1 , 1);
+      gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex;
+      gpuKernel->setPrimitive( gNbPrimitives,  10000.f, 10000.f, -5000.f, 200.f, 0.f, 50.f, 129, 1 , 1);
 
       if( update )
       {
@@ -1386,9 +1384,10 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
       
       // Post processing effects
       PostProcessingInfo postProcessingInfo = irtInfo.postProcessingInfo;
-      postProcessingInfo.param1.x = -cameraTarget.z;
-      postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
-      postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
+      //postProcessingInfo.param1.x = 1000.f;//-cameraTarget.z;
+      postProcessingInfo.param2.x = 200.f;
+      //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
+      //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
 
       // Shadows
       sceneInfo.shadowsEnabled.x = (postProcessingInfo.type.x != 2);
@@ -1502,10 +1501,11 @@ void parseIRT( Lacewing::Webserver::Request& request, std::string& requestStr, c
       else if ( strcmp(p->Name(),"postprocessing") == 0 )
       {
          // --------------------------------------------------------------------------------
-         // structure
+         // Post Processing
          // --------------------------------------------------------------------------------
          int postProcessing = atoi(p->Value());
          if( postProcessing<0 || postProcessing>2 ) postProcessing = 0;
+         irtInfo.postProcessingInfo.type.x = postProcessing;
       }
 
       p = p->Next();
@@ -1557,6 +1557,11 @@ void parseURL( Lacewing::Webserver::Request& request )
             update=true;
          }
          parseChart( request, requestStr, update );
+
+#if 0
+         FileMarshaller fm;
+         fm.saveToFile( *gpuKernel, "chart.irt" );         
+#endif // 0
       }
    }
    // Store information about rendered molecule
