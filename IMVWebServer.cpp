@@ -130,7 +130,7 @@ SceneInfo gSceneInfo =
 { 
    gWindowWidth,               // width
    gWindowHeight,              // height
-   true,                       // shadowsEnabled
+   true,                       // graphicsLevel
    20,                         // nbRayIterations
    3.f,                        // transparentColor
    500000.f,                   // viewDistance
@@ -723,7 +723,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
       //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
 
       // Shadows
-      sceneInfo.shadowsEnabled.x = (postProcessingInfo.type.x != 2);
+      sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
 
       // Rotation
       //gpuKernel->rotatePrimitives( gRotationCenter, chartInfo.rotationAngles, 0, gNbBoxes );
@@ -941,7 +941,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
       //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
 
       // Shadows
-      sceneInfo.shadowsEnabled.x = (postProcessingInfo.type.x != 2);
+      sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
 
       // Rotation
       //gpuKernel->rotatePrimitives( gRotationCenter, chartInfo.rotationAngles, 0, gNbBoxes );
@@ -1190,7 +1190,7 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
       //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
 
       // Shadows
-      sceneInfo.shadowsEnabled.x = (postProcessingInfo.type.x != 2);
+      sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
 
       // Rotation
       //gpuKernel->rotatePrimitives( gRotationCenter, moleculeInfo.rotationAngles, 0, gNbBoxes );
@@ -1390,7 +1390,7 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
       //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
 
       // Shadows
-      sceneInfo.shadowsEnabled.x = (postProcessingInfo.type.x != 2);
+      sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
 
       // Rotation
       // gpuKernel->rotatePrimitives( gRotationCenter, irtInfo.rotationAngles, 0, gNbBoxes );
