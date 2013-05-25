@@ -567,7 +567,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
 
       // Lamp
       gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+(index++);
-      gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, static_cast<float>(rand()%10000-5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
+      gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
 
       // Build Chart
       for( int s(0); s<NB_MAX_SERIES; ++s )
@@ -809,7 +809,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
 
       // Lamp
       gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+4;
-      gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, static_cast<float>(rand()%10000-5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
+      gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
 
       // Build Chart
       int index(0);
@@ -1376,7 +1376,7 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
       if( update )
       {
          FileMarshaller fm;
-         float3 size = fm.loadFromFile(*gpuKernel,fileName);
+         float3 size = fm.loadFromFile(*gpuKernel,fileName, 5000.f);
          gNbPrimitives = gpuKernel->addPrimitive( ptCheckboard );
          gpuKernel->setPrimitive( gNbPrimitives, 0.f, -2500.f, 0.f, 10000.f, 0.f, 10000.f, 102, 100, 100);
       }
