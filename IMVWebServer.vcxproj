@@ -151,6 +151,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="html\Charts\index.html" />
+    <None Include="icon1.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="IMVWebServer.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
