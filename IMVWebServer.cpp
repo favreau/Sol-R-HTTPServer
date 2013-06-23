@@ -349,6 +349,24 @@ void initializeKernel( const bool& random )
    gpuKernel->setSceneInfo( gSceneInfo );
    gpuKernel->initBuffers();
    createMaterials( gpuKernel, random );
+
+   // Load textures
+   std::string folderName("./textures");
+   folderName += "/";
+	// Textures
+   for( int i(0); i<NB_MAX_TEXTURES; i++)
+	{
+		std::string filename(folderName);
+		char tmp[5];
+#ifdef WIN32
+		sprintf_s(tmp, "%03d", i);
+#else
+		sprintf(tmp, "%03d", i);
+#endif
+		filename += tmp;
+		filename += ".bmp";
+		gpuKernel->addTexture(filename.c_str());
+	}
 }
 
 void destroyKernel()
@@ -452,7 +470,7 @@ char* convertToBMP( char* buffer )
    return result;
 }
 
-void saveToJPeg( Lacewing::Webserver::Request& request, const std::string& filename, const SceneInfo& sceneInfo, const char* image )
+void saveToJPeg( Lacewing::Webserver::Request& request, const std::string& filename, const SceneInfo& sceneInfo, const unsigned char* image )
 {
    size_t len(0);
    char* buffer = nullptr;
@@ -505,250 +523,244 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
 
    SceneInfo sceneInfo = chartInfo.sceneInfo;
    size_t len(sceneInfo.width.x*sceneInfo.height.x*gWindowDepth);
-   char* image = new char[len];
-   if( image != nullptr )
-   {
-      long renderingTime = GetTickCount();
-      int index(0);
+   long renderingTime = GetTickCount();
+   int index(0);
 
-      // Ground
-      float sideSize = columnSpacing.x*chartInfo.values[0].size()*0.9f;
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-      if(!update) gChartStartIndex = gNbPrimitives;
-      gpuKernel->setPrimitive( gNbPrimitives, 
-          -sideSize, -10.f, -sideSize, 
-           sideSize, -10.f, -sideSize,
-           sideSize, -10.f,  sideSize,
-                0.f, -10.f,       0.f, 
-            material,  1,         1);
+   // Ground
+   float sideSize = columnSpacing.x*chartInfo.values[0].size()*0.9f;
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+   if(!update) gChartStartIndex = gNbPrimitives;
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         -sideSize, -10.f, -sideSize, 
+         sideSize, -10.f, -sideSize,
+         sideSize, -10.f,  sideSize,
+               0.f, -10.f,       0.f, 
+         material,  1,         1);
 
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-      gpuKernel->setPrimitive( gNbPrimitives, 
-           sideSize, -10.f,  sideSize, 
-          -sideSize, -10.f,  sideSize,
-          -sideSize, -10.f, -sideSize,
-                0.f, 0.f,       0.f, 
-            material,  1,         1);
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         sideSize, -10.f,  sideSize, 
+         -sideSize, -10.f,  sideSize,
+         -sideSize, -10.f, -sideSize,
+               0.f, 0.f,       0.f, 
+         material,  1,         1);
 
-      // Wall
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-      gpuKernel->setPrimitive( gNbPrimitives, 
-          -sideSize,         -10.f,  sideSize, 
-           sideSize,         -10.f,  sideSize,
-           sideSize, sideSize-10.f,  sideSize,
-                0.f,      0.f,       0.f, 
-            material,       1,         1);
+   // Wall
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         -sideSize,         -10.f,  sideSize, 
+         sideSize,         -10.f,  sideSize,
+         sideSize, sideSize-10.f,  sideSize,
+               0.f,      0.f,       0.f, 
+         material,       1,         1);
       
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-      gpuKernel->setPrimitive( gNbPrimitives, 
-           sideSize, sideSize-10.f,  sideSize, 
-          -sideSize, sideSize-10.f,  sideSize,
-          -sideSize,         -10.f,  sideSize,
-                0.f,      0.f,       0.f, 
-            material,       1,         1);
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         sideSize, sideSize-10.f,  sideSize, 
+         -sideSize, sideSize-10.f,  sideSize,
+         -sideSize,         -10.f,  sideSize,
+               0.f,      0.f,       0.f, 
+         material,       1,         1);
 
-      // Right Side
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-      gpuKernel->setPrimitive( gNbPrimitives, 
-           sideSize,         -10.f, -sideSize, 
-           sideSize,         -10.f,  sideSize+10.f,
-           sideSize, sideSize-10.f,  sideSize+10.f,
-                0.f,      0.f,       0.f, 
-            material,       1,         1);
+   // Right Side
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         sideSize,         -10.f, -sideSize, 
+         sideSize,         -10.f,  sideSize+10.f,
+         sideSize, sideSize-10.f,  sideSize+10.f,
+               0.f,      0.f,       0.f, 
+         material,       1,         1);
 
-      // Left Side
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-      gpuKernel->setPrimitive( gNbPrimitives, 
-           -sideSize,         -10.f, -sideSize, 
-           -sideSize,         -10.f,  sideSize+10.f,
-           -sideSize, sideSize-10.f,  sideSize+10.f,
-                0.f,      0.f,       0.f, 
-            material,       1,         1);
+   // Left Side
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         -sideSize,         -10.f, -sideSize, 
+         -sideSize,         -10.f,  sideSize+10.f,
+         -sideSize, sideSize-10.f,  sideSize+10.f,
+               0.f,      0.f,       0.f, 
+         material,       1,         1);
 
-      // Lamp
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+(index++);
-      gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
+   // Lamp
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+(index++);
+   gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
 
-      // Build Chart
-      for( int s(0); s<NB_MAX_SERIES; ++s )
+   // Build Chart
+   for( int s(0); s<NB_MAX_SERIES; ++s )
+   {
+      material = 20+s*5;
+      float x=-(columnSpacing.x*chartInfo.values[s].size())/2.f + columnSpacing.x/4.f;
+
+      std::vector<float>::const_iterator it = chartInfo.values[s].begin();
+      float value=(*it);
+      ++it;
+      for( int i(0); i<chartInfo.values[s].size()-1; ++i )
       {
-         material = 20+s*5;
-         float x=-(columnSpacing.x*chartInfo.values[s].size())/2.f + columnSpacing.x/4.f;
+         float ymin = (value< (*it)) ? value : (*it);
 
-         std::vector<float>::const_iterator it = chartInfo.values[s].begin();
-         float value=(*it);
-         ++it;
-         for( int i(0); i<chartInfo.values[s].size()-1; ++i )
-         {
-            float ymin = (value< (*it)) ? value : (*it);
-
-            float offsetZ = s*columnSpacing.z - ( NB_MAX_SERIES * columnSpacing.z )/2.f;
+         float offsetZ = s*columnSpacing.z - ( NB_MAX_SERIES * columnSpacing.z )/2.f;
             
-            // Front
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+         // Front
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+         gpuKernel->setPrimitive( gNbPrimitives, 
+                           x,                0.f, offsetZ, 
+            x+columnSize.x,                0.f, offsetZ,
+            x+columnSize.x, ymin*columnSize.y, offsetZ,
+                        0.f,                0.f, 0.f, 
+                  material,                  1,   1);
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+         gpuKernel->setPrimitive( gNbPrimitives, 
+            x+columnSize.x, ymin*columnSize.y, offsetZ,
+                           x, ymin*columnSize.y, offsetZ,
+                           x,                0.f, offsetZ, 
+                        0.f,                0.f, 0.f, 
+                  material,                  1,   1);
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+         if( value < (*it ) )
+         {
             gpuKernel->setPrimitive( gNbPrimitives, 
-                            x,                0.f, offsetZ, 
-               x+columnSize.x,                0.f, offsetZ,
-               x+columnSize.x, ymin*columnSize.y, offsetZ,
-                          0.f,                0.f, 0.f, 
+                              x, value*columnSize.y, offsetZ, 
+               x+columnSize.x, value*columnSize.y, offsetZ,
+               x+columnSize.x, (*it)*columnSize.y, offsetZ,
+                           0.f,                0.f, 0.f, 
                      material,                  1,   1);
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+         }
+         else
+         {
             gpuKernel->setPrimitive( gNbPrimitives, 
-               x+columnSize.x, ymin*columnSize.y, offsetZ,
-                            x, ymin*columnSize.y, offsetZ,
-                            x,                0.f, offsetZ, 
-                          0.f,                0.f, 0.f, 
+                              x, value*columnSize.y, offsetZ, 
+                              x, (*it)*columnSize.y, offsetZ,
+               x+columnSize.x, (*it)*columnSize.y, offsetZ,
+                           0.f,                0.f, 0.f, 
                      material,                  1,   1);
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-            if( value < (*it ) )
-            {
-               gpuKernel->setPrimitive( gNbPrimitives, 
-                               x, value*columnSize.y, offsetZ, 
-                  x+columnSize.x, value*columnSize.y, offsetZ,
-                  x+columnSize.x, (*it)*columnSize.y, offsetZ,
-                             0.f,                0.f, 0.f, 
-                        material,                  1,   1);
-            }
-            else
-            {
-               gpuKernel->setPrimitive( gNbPrimitives, 
-                               x, value*columnSize.y, offsetZ, 
-                               x, (*it)*columnSize.y, offsetZ,
-                  x+columnSize.x, (*it)*columnSize.y, offsetZ,
-                             0.f,                0.f, 0.f, 
-                        material,                  1,   1);
-            }
+         }
 
-            // Back
+         // Back
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+         gpuKernel->setPrimitive( gNbPrimitives, 
+                           x,                0.f, columnSize.z + offsetZ, 
+            x+columnSize.x,                0.f, columnSize.z + offsetZ,
+            x+columnSize.x,  ymin*columnSize.y, columnSize.z + offsetZ,
+                        0.f,                0.f, 0.f, 
+                  material,                  1,   1);
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+         gpuKernel->setPrimitive( gNbPrimitives, 
+            x+columnSize.x, ymin*columnSize.y, columnSize.z + offsetZ,
+                           x, ymin*columnSize.y, columnSize.z + offsetZ,
+                           x,               0.f, columnSize.z + offsetZ, 
+                        0.f,               0.f, 0.f, 
+                  material,                 1,   1);
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+         if( value < (*it ) )
+         {
+            gpuKernel->setPrimitive( gNbPrimitives, 
+                              x, value*columnSize.y, columnSize.z + offsetZ, 
+               x+columnSize.x, value*columnSize.y, columnSize.z + offsetZ,
+               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                           0.f,                0.f, 0.f, 
+                     material,                  1,   1);
+         }
+         else
+         {
+            gpuKernel->setPrimitive( gNbPrimitives, 
+                              x, value*columnSize.y, columnSize.z + offsetZ, 
+                              x, (*it)*columnSize.y, columnSize.z + offsetZ,
+               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                           0.f,                0.f, 0.f, 
+                     material,                  1,   1);
+         }
+
+         //top
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+         gpuKernel->setPrimitive( gNbPrimitives, 
+                           x, value*columnSize.y, offsetZ, 
+            x+columnSize.x, (*it)*columnSize.y, offsetZ,
+            x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                        0.f,                0.f, 0.f, 
+                  material,                  1,   1);
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
+         gpuKernel->setPrimitive( gNbPrimitives, 
+            x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                           x, value*columnSize.y, columnSize.z + offsetZ,
+                           x, value*columnSize.y, offsetZ, 
+                        0.f,                0.f, 0.f, 
+                  material,                  1,   1);
+
+         // Sides
+         if( i==0 )
+         {
             gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
             gpuKernel->setPrimitive( gNbPrimitives, 
-                            x,                0.f, columnSize.z + offsetZ, 
-               x+columnSize.x,                0.f, columnSize.z + offsetZ,
-               x+columnSize.x,  ymin*columnSize.y, columnSize.z + offsetZ,
-                          0.f,                0.f, 0.f, 
+                              x,                0.f, offsetZ, 
+                              x, value*columnSize.y, offsetZ,
+                              x, value*columnSize.y, columnSize.z + offsetZ,
+                           0.f,                0.f, 0.f, 
                      material,                  1,   1);
             gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
             gpuKernel->setPrimitive( gNbPrimitives, 
-               x+columnSize.x, ymin*columnSize.y, columnSize.z + offsetZ,
-                            x, ymin*columnSize.y, columnSize.z + offsetZ,
-                            x,               0.f, columnSize.z + offsetZ, 
-                          0.f,               0.f, 0.f, 
-                     material,                 1,   1);
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-            if( value < (*it ) )
-            {
-               gpuKernel->setPrimitive( gNbPrimitives, 
-                               x, value*columnSize.y, columnSize.z + offsetZ, 
-                  x+columnSize.x, value*columnSize.y, columnSize.z + offsetZ,
-                  x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                             0.f,                0.f, 0.f, 
-                        material,                  1,   1);
-            }
-            else
-            {
-               gpuKernel->setPrimitive( gNbPrimitives, 
-                               x, value*columnSize.y, columnSize.z + offsetZ, 
-                               x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                  x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                             0.f,                0.f, 0.f, 
-                        material,                  1,   1);
-            }
+                              x, value*columnSize.y, columnSize.z + offsetZ, 
+                              x,                0.f, columnSize.z + offsetZ,
+                              x,                0.f, offsetZ,
+                           0.f,                0.f, 0.f, 
+                     material,                  1,   1);
+         }
 
-            //top
+         if( i==chartInfo.values[s].size()-2 )
+         {
             gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
             gpuKernel->setPrimitive( gNbPrimitives, 
-                            x, value*columnSize.y, offsetZ, 
+               x+columnSize.x,                0.f, offsetZ, 
                x+columnSize.x, (*it)*columnSize.y, offsetZ,
                x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                          0.f,                0.f, 0.f, 
+                           0.f,                0.f, 0.f, 
                      material,                  1,   1);
             gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
             gpuKernel->setPrimitive( gNbPrimitives, 
-               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                            x, value*columnSize.y, columnSize.z + offsetZ,
-                            x, value*columnSize.y, offsetZ, 
-                          0.f,                0.f, 0.f, 
+               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ, 
+               x+columnSize.x,                0.f, columnSize.z + offsetZ,
+               x+columnSize.x,                0.f, offsetZ,
+                           0.f,                0.f, 0.f, 
                      material,                  1,   1);
-
-            // Sides
-            if( i==0 )
-            {
-               gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-               gpuKernel->setPrimitive( gNbPrimitives, 
-                               x,                0.f, offsetZ, 
-                               x, value*columnSize.y, offsetZ,
-                               x, value*columnSize.y, columnSize.z + offsetZ,
-                             0.f,                0.f, 0.f, 
-                        material,                  1,   1);
-               gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-               gpuKernel->setPrimitive( gNbPrimitives, 
-                               x, value*columnSize.y, columnSize.z + offsetZ, 
-                               x,                0.f, columnSize.z + offsetZ,
-                               x,                0.f, offsetZ,
-                             0.f,                0.f, 0.f, 
-                        material,                  1,   1);
-            }
-
-            if( i==chartInfo.values[s].size()-2 )
-            {
-               gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-               gpuKernel->setPrimitive( gNbPrimitives, 
-                  x+columnSize.x,                0.f, offsetZ, 
-                  x+columnSize.x, (*it)*columnSize.y, offsetZ,
-                  x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                             0.f,                0.f, 0.f, 
-                        material,                  1,   1);
-               gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
-               gpuKernel->setPrimitive( gNbPrimitives, 
-                  x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ, 
-                  x+columnSize.x,                0.f, columnSize.z + offsetZ,
-                  x+columnSize.x,                0.f, offsetZ,
-                             0.f,                0.f, 0.f, 
-                        material,                  1,   1);
-            }
-
-            value = (*it);
-            x += columnSpacing.x;
-            ++it;
          }
-         material++;
+
+         value = (*it);
+         x += columnSpacing.x;
+         ++it;
       }
-
-      gNbBoxes = gpuKernel->compactBoxes(update);
-
-      // Post processing effects
-      PostProcessingInfo postProcessingInfo = chartInfo.postProcessingInfo;
-      postProcessingInfo.param2.x = 200.f;
-      //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
-      //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
-
-      // Shadows
-      sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
-
-      // Rotation
-      //gpuKernel->rotatePrimitives( gRotationCenter, chartInfo.rotationAngles, 0, gNbBoxes );
-
-      // Background color
-      sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
-
-      // Rendering process
-      for( int i(0); i<sceneInfo.maxPathTracingIterations.x; ++i)
-      {
-         sceneInfo.pathTracingIteration.x = i;
-         gpuKernel->setPostProcessingInfo( postProcessingInfo );
-         gpuKernel->setSceneInfo( sceneInfo );
-         cameraAngles = chartInfo.rotationAngles;
-         gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
-         gpuKernel->render_begin(0.f);
-         gpuKernel->render_end((char*)image);
-      }
-      std::string filename = "chart.jpg";
-      saveToJPeg( request, filename, sceneInfo, image );
-
-      // Release resources
-      delete image;
-      image = nullptr;
+      material++;
    }
+
+   gNbBoxes = gpuKernel->compactBoxes(update);
+
+   // Post processing effects
+   PostProcessingInfo postProcessingInfo = chartInfo.postProcessingInfo;
+   postProcessingInfo.param2.x = 200.f;
+   //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
+   //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
+
+   // Shadows
+   sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
+
+   // Rotation
+   //gpuKernel->rotatePrimitives( gRotationCenter, chartInfo.rotationAngles, 0, gNbBoxes );
+
+   // Background color
+   sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
+
+   // Rendering process
+   unsigned char* image = nullptr;
+   for( int i(0); i<sceneInfo.maxPathTracingIterations.x; ++i)
+   {
+      sceneInfo.pathTracingIteration.x = i;
+      gpuKernel->setPostProcessingInfo( postProcessingInfo );
+      gpuKernel->setSceneInfo( sceneInfo );
+      cameraAngles = chartInfo.rotationAngles;
+      gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
+      gpuKernel->render_begin(0.f);
+      gpuKernel->render_end();
+      image = gpuKernel->getBitmap();
+   }
+   std::string filename = "chart.jpg";
+   saveToJPeg( request, filename, sceneInfo, image );
 }
 
 void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, const bool& update )
@@ -765,208 +777,202 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
 
    SceneInfo sceneInfo = chartInfo.sceneInfo;
    size_t len(sceneInfo.width.x*sceneInfo.height.x*gWindowDepth);
-   char* image = new char[len];
-   if( image != nullptr )
-   {
-      long renderingTime = GetTickCount();
+   long renderingTime = GetTickCount();
 
-      // Ground
-      float sideSize = columnSpacing.x*chartInfo.values[0].size()*0.9f;
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex;
-      if(!update) gChartStartIndex = gNbPrimitives;
+   // Ground
+   float sideSize = columnSpacing.x*chartInfo.values[0].size()*0.9f;
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex;
+   if(!update) gChartStartIndex = gNbPrimitives;
 
-      gpuKernel->setPrimitive( gNbPrimitives, 
-          -sideSize, -10.f, -sideSize, 
-           sideSize, -10.f, -sideSize,
-           sideSize, -10.f,  sideSize,
-                0.f, -10.f,       0.f, 
-            material,  1,         1);
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         -sideSize, -10.f, -sideSize, 
+         sideSize, -10.f, -sideSize,
+         sideSize, -10.f,  sideSize,
+               0.f, -10.f,       0.f, 
+         material,  1,         1);
 
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+1;
-      gpuKernel->setPrimitive( gNbPrimitives, 
-           sideSize, -10.f,  sideSize, 
-          -sideSize, -10.f,  sideSize,
-          -sideSize, -10.f, -sideSize,
-                0.f, 0.f,       0.f, 
-            material,  1,         1);
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+1;
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         sideSize, -10.f,  sideSize, 
+         -sideSize, -10.f,  sideSize,
+         -sideSize, -10.f, -sideSize,
+               0.f, 0.f,       0.f, 
+         material,  1,         1);
 
-      // Wall
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+2;
-      gpuKernel->setPrimitive( gNbPrimitives, 
-          -sideSize,         -10.f,  sideSize, 
-           sideSize,         -10.f,  sideSize,
-           sideSize, sideSize-10.f,  sideSize,
-                0.f,      0.f,       0.f, 
-            material,       1,         1);
+   // Wall
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+2;
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         -sideSize,         -10.f,  sideSize, 
+         sideSize,         -10.f,  sideSize,
+         sideSize, sideSize-10.f,  sideSize,
+               0.f,      0.f,       0.f, 
+         material,       1,         1);
       
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+3;
-      gpuKernel->setPrimitive( gNbPrimitives, 
-           sideSize, sideSize-10.f,  sideSize, 
-          -sideSize, sideSize-10.f,  sideSize,
-          -sideSize,         -10.f,  sideSize,
-                0.f,      0.f,       0.f, 
-            material,       1,         1);
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+3;
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         sideSize, sideSize-10.f,  sideSize, 
+         -sideSize, sideSize-10.f,  sideSize,
+         -sideSize,         -10.f,  sideSize,
+               0.f,      0.f,       0.f, 
+         material,       1,         1);
 
-      // Lamp
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+4;
-      gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
+   // Lamp
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+4;
+   gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
 
-      // Build Chart
-      int index(0);
-      for( int s(0); s<NB_MAX_SERIES; ++s )
+   // Build Chart
+   int index(0);
+   for( int s(0); s<NB_MAX_SERIES; ++s )
+   {
+      material = 20+s*5;
+      float x=-(columnSpacing.x*chartInfo.values[s].size())/2.f + columnSpacing.x/4.f;
+      std::vector<float>::const_iterator it = chartInfo.values[s].begin();
+      while( it != chartInfo.values[s].end() )
       {
-         material = 20+s*5;
-         float x=-(columnSpacing.x*chartInfo.values[s].size())/2.f + columnSpacing.x/4.f;
-         std::vector<float>::const_iterator it = chartInfo.values[s].begin();
-         while( it != chartInfo.values[s].end() )
-         {
-            float offsetZ = s*columnSpacing.z - ( NB_MAX_SERIES * columnSpacing.z )/2.f;
-            // Front
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+5+index;
-            gpuKernel->setPrimitive( gNbPrimitives, 
-                            x,                0.f, offsetZ, 
-               x+columnSize.x,                0.f, offsetZ,
-               x+columnSize.x, (*it)*columnSize.y, offsetZ,
-                          0.f,                0.f, 0.f, 
-                     material,                  1,   1);
+         float offsetZ = s*columnSpacing.z - ( NB_MAX_SERIES * columnSpacing.z )/2.f;
+         // Front
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+5+index;
+         gpuKernel->setPrimitive( gNbPrimitives, 
+                           x,                0.f, offsetZ, 
+            x+columnSize.x,                0.f, offsetZ,
+            x+columnSize.x, (*it)*columnSize.y, offsetZ,
+                        0.f,                0.f, 0.f, 
+                  material,                  1,   1);
 
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+6+index;
-            gpuKernel->setPrimitive( gNbPrimitives, 
-               x+columnSize.x, (*it)*columnSize.y, offsetZ,
-                            x, (*it)*columnSize.y, offsetZ,
-                            x,                0.f, offsetZ, 
-                          0.f,                0.f, 0.f, 
-                 material,                      1,   1);
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+6+index;
+         gpuKernel->setPrimitive( gNbPrimitives, 
+            x+columnSize.x, (*it)*columnSize.y, offsetZ,
+                           x, (*it)*columnSize.y, offsetZ,
+                           x,                0.f, offsetZ, 
+                        0.f,                0.f, 0.f, 
+               material,                      1,   1);
 
-            // Back
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+7+index;
-            gpuKernel->setPrimitive( gNbPrimitives, 
-                        x,            0.f, columnSize.z + offsetZ, 
-               x+columnSize.x,            0.f, columnSize.z + offsetZ,
-               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                      0.f,            0.f,      0.f, 
-                 material,              1,        1);
+         // Back
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+7+index;
+         gpuKernel->setPrimitive( gNbPrimitives, 
+                     x,            0.f, columnSize.z + offsetZ, 
+            x+columnSize.x,            0.f, columnSize.z + offsetZ,
+            x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                     0.f,            0.f,      0.f, 
+               material,              1,        1);
 
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+8+index;
-            gpuKernel->setPrimitive( gNbPrimitives, 
-               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                        x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                        x,            0.f, columnSize.z + offsetZ, 
-                      0.f,            0.f,      0.f, 
-                 material,              1,        1);
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+8+index;
+         gpuKernel->setPrimitive( gNbPrimitives, 
+            x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                     x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                     x,            0.f, columnSize.z + offsetZ, 
+                     0.f,            0.f,      0.f, 
+               material,              1,        1);
 
-            // Right side
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+9+index;
-            gpuKernel->setPrimitive( gNbPrimitives, 
-               x+columnSize.x,                0.f,          0.f + offsetZ, 
-               x+columnSize.x,                0.f, columnSize.z + offsetZ,
-               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                      0.f,            0.f,      0.f, 
-                 material,              1,        1);
+         // Right side
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+9+index;
+         gpuKernel->setPrimitive( gNbPrimitives, 
+            x+columnSize.x,                0.f,          0.f + offsetZ, 
+            x+columnSize.x,                0.f, columnSize.z + offsetZ,
+            x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                     0.f,            0.f,      0.f, 
+               material,              1,        1);
 
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+10+index;
-            gpuKernel->setPrimitive( gNbPrimitives, 
-               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
-               x+columnSize.x, (*it)*columnSize.y,          0.f + offsetZ,
-               x+columnSize.x,                0.f,          0.f + offsetZ, 
-                      0.f,            0.f,         0.f, 
-                 material,              1,        1);
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+10+index;
+         gpuKernel->setPrimitive( gNbPrimitives, 
+            x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+            x+columnSize.x, (*it)*columnSize.y,          0.f + offsetZ,
+            x+columnSize.x,                0.f,          0.f + offsetZ, 
+                     0.f,            0.f,         0.f, 
+               material,              1,        1);
 
-            // Left side
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+11+index;
-            gpuKernel->setPrimitive( gNbPrimitives, 
-                        x,                0.f,          0.f + offsetZ, 
-                        x,                0.f, columnSize.z + offsetZ,
-                        x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                      0.f,            0.f,      0.f, 
-                 material,              1,        1);
+         // Left side
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+11+index;
+         gpuKernel->setPrimitive( gNbPrimitives, 
+                     x,                0.f,          0.f + offsetZ, 
+                     x,                0.f, columnSize.z + offsetZ,
+                     x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                     0.f,            0.f,      0.f, 
+               material,              1,        1);
 
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+12+index;
-            gpuKernel->setPrimitive( gNbPrimitives, 
-                        x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                        x, (*it)*columnSize.y,      0.f + offsetZ,
-                        x,            0.f,      0.f + offsetZ, 
-                      0.f,            0.f,      0.f, 
-                 material,              1,        1);
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+12+index;
+         gpuKernel->setPrimitive( gNbPrimitives, 
+                     x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                     x, (*it)*columnSize.y,      0.f + offsetZ,
+                     x,            0.f,      0.f + offsetZ, 
+                     0.f,            0.f,      0.f, 
+               material,              1,        1);
 
-            // Top side
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+13+index;
-            gpuKernel->setPrimitive( gNbPrimitives, 
-                        x, (*it)*columnSize.y,      0.f + offsetZ, 
-               x+columnSize.x, (*it)*columnSize.y,      0.f + offsetZ,
-               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                      0.f,            0.f,      0.f, 
-                 material,              1,        1);
+         // Top side
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+13+index;
+         gpuKernel->setPrimitive( gNbPrimitives, 
+                     x, (*it)*columnSize.y,      0.f + offsetZ, 
+            x+columnSize.x, (*it)*columnSize.y,      0.f + offsetZ,
+            x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                     0.f,            0.f,      0.f, 
+               material,              1,        1);
 
-            gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+14+index;
-            gpuKernel->setPrimitive( gNbPrimitives, 
-               x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                        x, (*it)*columnSize.y, columnSize.z + offsetZ,
-                        x, (*it)*columnSize.y,      0.f + offsetZ, 
-                      0.f,            0.f,      0.f, 
-                 material,              1,        1);
+         gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+14+index;
+         gpuKernel->setPrimitive( gNbPrimitives, 
+            x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                     x, (*it)*columnSize.y, columnSize.z + offsetZ,
+                     x, (*it)*columnSize.y,      0.f + offsetZ, 
+                     0.f,            0.f,      0.f, 
+               material,              1,        1);
 
-            x += columnSpacing.x;
-            ++it;
-            index+=10;
-         }
-         material++;
+         x += columnSpacing.x;
+         ++it;
+         index+=10;
       }
-
-      material = 100;
-      // Right Side
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+index+15;
-      gpuKernel->setPrimitive( gNbPrimitives, 
-           sideSize,         -10.f, -sideSize, 
-           sideSize,         -10.f,  sideSize+10.f,
-           sideSize, sideSize-10.f,  sideSize+10.f,
-                0.f,      0.f,       0.f, 
-            material,       1,         1);
-
-      // Left Side
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+index+16;
-      gpuKernel->setPrimitive( gNbPrimitives, 
-           -sideSize,         -10.f, -sideSize, 
-           -sideSize,         -10.f,  sideSize+10.f,
-           -sideSize, sideSize-10.f,  sideSize+10.f,
-                0.f,      0.f,       0.f, 
-            material,       1,         1);
-
-      gNbBoxes = gpuKernel->compactBoxes(update);
-
-      // Post processing effects
-      PostProcessingInfo postProcessingInfo = chartInfo.postProcessingInfo;
-      postProcessingInfo.param2.x = 200.f;
-      //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
-      //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
-
-      // Shadows
-      sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
-
-      // Rotation
-      //gpuKernel->rotatePrimitives( gRotationCenter, chartInfo.rotationAngles, 0, gNbBoxes );
-
-      // Background color
-      sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
-
-      // Rendering process
-      for( int i(0); i<sceneInfo.maxPathTracingIterations.x; ++i)
-      {
-         sceneInfo.pathTracingIteration.x = i;
-         gpuKernel->setPostProcessingInfo( postProcessingInfo );
-         gpuKernel->setSceneInfo( sceneInfo );
-         cameraAngles = chartInfo.rotationAngles;
-         gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
-         gpuKernel->render_begin(0.f);
-         gpuKernel->render_end((char*)image);
-      }
-      std::string filename = "chart.jpg";
-      saveToJPeg( request, filename, sceneInfo, image );
-
-      // Release resources
-      delete image;
-      image = nullptr;
+      material++;
    }
+
+   material = 100;
+   // Right Side
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+index+15;
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         sideSize,         -10.f, -sideSize, 
+         sideSize,         -10.f,  sideSize+10.f,
+         sideSize, sideSize-10.f,  sideSize+10.f,
+               0.f,      0.f,       0.f, 
+         material,       1,         1);
+
+   // Left Side
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+index+16;
+   gpuKernel->setPrimitive( gNbPrimitives, 
+         -sideSize,         -10.f, -sideSize, 
+         -sideSize,         -10.f,  sideSize+10.f,
+         -sideSize, sideSize-10.f,  sideSize+10.f,
+               0.f,      0.f,       0.f, 
+         material,       1,         1);
+
+   gNbBoxes = gpuKernel->compactBoxes(update);
+
+   // Post processing effects
+   PostProcessingInfo postProcessingInfo = chartInfo.postProcessingInfo;
+   postProcessingInfo.param2.x = 200.f;
+   //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
+   //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
+
+   // Shadows
+   sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
+
+   // Rotation
+   //gpuKernel->rotatePrimitives( gRotationCenter, chartInfo.rotationAngles, 0, gNbBoxes );
+
+   // Background color
+   sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
+
+   // Rendering process
+   unsigned char* image = nullptr;
+   for( int i(0); i<sceneInfo.maxPathTracingIterations.x; ++i)
+   {
+      sceneInfo.pathTracingIteration.x = i;
+      gpuKernel->setPostProcessingInfo( postProcessingInfo );
+      gpuKernel->setSceneInfo( sceneInfo );
+      cameraAngles = chartInfo.rotationAngles;
+      gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
+      gpuKernel->render_begin(0.f);
+      gpuKernel->render_end();
+      image = gpuKernel->getBitmap();
+   }
+   std::string filename = "chart.jpg";
+   saveToJPeg( request, filename, sceneInfo, image );
 }
 
 void renderChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, const bool& update )
@@ -1163,59 +1169,53 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
    // --------------------------------------------------------------------------------
    SceneInfo sceneInfo = moleculeInfo.sceneInfo;
    size_t len(sceneInfo.width.x*sceneInfo.height.x*gWindowDepth);
-   char* image = new char[len];
-   if( image != nullptr )
+   long renderingTime = GetTickCount();
+
+   // Lamp
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex;
+   gpuKernel->setPrimitive( gNbPrimitives,  -5000.f, 5000.f, -5000.f, 50.f, 0.f, 0.f, 129, 1 , 1);
+
+   if( update )
    {
-      long renderingTime = GetTickCount();
-
-      // Lamp
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex;
-      gpuKernel->setPrimitive( gNbPrimitives,  -5000.f, 5000.f, -5000.f, 50.f, 0.f, 0.f, 129, 1 , 1);
-
-      if( update )
-      {
-         PDBReader reader;
-         float4 size = reader.loadAtomsFromFile(
-            fileName,*gpuKernel,
-            static_cast<GeometryType>(moleculeInfo.structureType),50.f,20.f,
-            moleculeInfo.scheme,
-            20.f,false);
-      }
-      gNbBoxes = gpuKernel->compactBoxes(update);
-
-      // Post processing effects
-      PostProcessingInfo postProcessingInfo = moleculeInfo.postProcessingInfo;
-      postProcessingInfo.param2.x = 200.f;
-      //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
-      //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
-
-      // Shadows
-      sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
-
-      // Rotation
-      //gpuKernel->rotatePrimitives( gRotationCenter, moleculeInfo.rotationAngles, 0, gNbBoxes );
-
-      // Background color
-      sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
-
-      // Rendering process
-      for( int i(0); i<sceneInfo.maxPathTracingIterations.x; ++i)
-      {
-         sceneInfo.pathTracingIteration.x = i;
-         gpuKernel->setPostProcessingInfo( postProcessingInfo );
-         gpuKernel->setSceneInfo( sceneInfo );
-         cameraAngles = moleculeInfo.rotationAngles;
-         gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
-         gpuKernel->render_begin(0.f);
-         gpuKernel->render_end((char*)image);
-      }
-      std::string filename = moleculeInfo.moleculeId + ".jpg";
-      saveToJPeg( request, filename, sceneInfo, image );
-
-      // Release resources
-      delete image;
-      image = nullptr;
+      PDBReader reader;
+      float4 size = reader.loadAtomsFromFile(
+         fileName,*gpuKernel,
+         static_cast<GeometryType>(moleculeInfo.structureType),50.f,20.f,
+         moleculeInfo.scheme,
+         20.f,false);
    }
+   gNbBoxes = gpuKernel->compactBoxes(update);
+
+   // Post processing effects
+   PostProcessingInfo postProcessingInfo = moleculeInfo.postProcessingInfo;
+   postProcessingInfo.param2.x = 200.f;
+   //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
+   //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
+
+   // Shadows
+   sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
+
+   // Rotation
+   //gpuKernel->rotatePrimitives( gRotationCenter, moleculeInfo.rotationAngles, 0, gNbBoxes );
+
+   // Background color
+   sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
+
+   // Rendering process
+   unsigned char* image = nullptr;
+   for( int i(0); i<sceneInfo.maxPathTracingIterations.x; ++i)
+   {
+      sceneInfo.pathTracingIteration.x = i;
+      gpuKernel->setPostProcessingInfo( postProcessingInfo );
+      gpuKernel->setSceneInfo( sceneInfo );
+      cameraAngles = moleculeInfo.rotationAngles;
+      gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
+      gpuKernel->render_begin(0.f);
+      gpuKernel->render_end();
+      image = gpuKernel->getBitmap();
+   }
+   std::string filename = "molecule.jpg";
+   saveToJPeg( request, filename, sceneInfo, image );
 }
 
 void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, const bool& update )
@@ -1364,58 +1364,52 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
    // --------------------------------------------------------------------------------
    SceneInfo sceneInfo = irtInfo.sceneInfo;
    size_t len(sceneInfo.width.x*sceneInfo.height.x*gWindowDepth);
-   char* image = new char[len];
-   if( image != nullptr )
+   long renderingTime = GetTickCount();
+
+   // Lamp
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex;
+   gpuKernel->setPrimitive( gNbPrimitives,  10000.f, 10000.f, -5000.f, 200.f, 0.f, 50.f, 129, 1 , 1);
+
+   if( update )
    {
-      long renderingTime = GetTickCount();
-
-      // Lamp
-      gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex;
-      gpuKernel->setPrimitive( gNbPrimitives,  10000.f, 10000.f, -5000.f, 200.f, 0.f, 50.f, 129, 1 , 1);
-
-      if( update )
-      {
-         FileMarshaller fm;
-         float3 size = fm.loadFromFile(*gpuKernel,fileName, 5000.f);
-         gNbPrimitives = gpuKernel->addPrimitive( ptCheckboard );
-         gpuKernel->setPrimitive( gNbPrimitives, 0.f, -2500.f, 0.f, 10000.f, 0.f, 10000.f, 102, 100, 100);
-      }
-      gNbBoxes = gpuKernel->compactBoxes(update);
-      
-      // Post processing effects
-      PostProcessingInfo postProcessingInfo = irtInfo.postProcessingInfo;
-      //postProcessingInfo.param1.x = 1000.f;//-cameraTarget.z;
-      postProcessingInfo.param2.x = 200.f;
-      //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
-      //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
-
-      // Shadows
-      sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
-
-      // Rotation
-      // gpuKernel->rotatePrimitives( gRotationCenter, irtInfo.rotationAngles, 0, gNbBoxes );
-
-      // Background color
-      sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
-
-      // Rendering process
-      for( int i(0); i<sceneInfo.maxPathTracingIterations.x; ++i)
-      {
-         sceneInfo.pathTracingIteration.x = i;
-         gpuKernel->setPostProcessingInfo( postProcessingInfo );
-         gpuKernel->setSceneInfo( sceneInfo );
-         cameraAngles = irtInfo.rotationAngles;
-         gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
-         gpuKernel->render_begin(0.f);
-         gpuKernel->render_end((char*)image);
-      }
-      std::string filename = irtInfo.filename + ".jpg";
-      saveToJPeg( request, filename, sceneInfo, image );
-
-      // Release resources
-      delete image;
-      image = nullptr;
+      FileMarshaller fm;
+      float3 size = fm.loadFromFile(*gpuKernel,fileName, 5000.f);
+      gNbPrimitives = gpuKernel->addPrimitive( ptCheckboard );
+      gpuKernel->setPrimitive( gNbPrimitives, 0.f, -2520.f, 0.f, 10000.f, 0.f, 10000.f, 102, 100, 100);
    }
+   gNbBoxes = gpuKernel->compactBoxes(update);
+      
+   // Post processing effects
+   PostProcessingInfo postProcessingInfo = irtInfo.postProcessingInfo;
+   //postProcessingInfo.param1.x = 1000.f;//-cameraTarget.z;
+   postProcessingInfo.param2.x = 200.f;
+   //postProcessingInfo.param2.x = (postProcessingInfo.type.x==0) ? sceneInfo.maxPathTracingIterations.x*10.f : 5000.f;
+   //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
+
+   // Shadows
+   sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
+
+   // Rotation
+   // gpuKernel->rotatePrimitives( gRotationCenter, irtInfo.rotationAngles, 0, gNbBoxes );
+
+   // Background color
+   sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
+
+   // Rendering process
+   unsigned char* image = nullptr;
+   for( int i(0); i<sceneInfo.maxPathTracingIterations.x; ++i)
+   {
+      sceneInfo.pathTracingIteration.x = i;
+      gpuKernel->setPostProcessingInfo( postProcessingInfo );
+      gpuKernel->setSceneInfo( sceneInfo );
+      cameraAngles = irtInfo.rotationAngles;
+      gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
+      gpuKernel->render_begin(0.f);
+      gpuKernel->render_end();
+      image = gpuKernel->getBitmap();
+   }
+   std::string filename = "irt.jpg";
+   saveToJPeg( request, filename, sceneInfo, image );
 }
 
 void parseIRT( Lacewing::Webserver::Request& request, std::string& requestStr, const bool& update )
