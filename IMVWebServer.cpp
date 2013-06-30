@@ -511,6 +511,7 @@ void saveToJPeg( Lacewing::Webserver::Request& request, const std::string& filen
 
 void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, const bool& update )
 {
+   int frame(0);
    float3 cameraOrigin = chartInfo.viewPos;
    float3 cameraTarget = chartInfo.viewPos;
    cameraTarget.z += 5000.f;
