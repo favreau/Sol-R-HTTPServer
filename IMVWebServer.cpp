@@ -134,7 +134,7 @@ SceneInfo gSceneInfo =
    20,                         // nbRayIterations
    3.f,                        // transparentColor
    500000.f,                   // viewDistance
-   0.3f,                       // shadowIntensity
+   0.8f,                       // shadowIntensity
    20.f,                       // width3DVision
    gBkGrey,                    // backgroundColor
    false,                      // supportFor3DVision
@@ -324,7 +324,7 @@ void createMaterials( CudaKernel* gpuKernel, const bool& random )
       case 126: r = 1.0f; g = 1.0f; b = 1.0f; specular.x = 0.f; specular.y = 100.f; specular.w = 0.1f; reflection = 0.8f; break;
       case 127: r = 1.0f; g = 1.0f; b = 0.f; innerIllumination = 0.5f; break;
       case 128: r = 1.0f; g = 1.0f; b = 1.f; innerIllumination = 0.5f; break;
-      case 129: r = 1.0f; g = 1.0f; b = 1.0f; innerIllumination = 1.f; break;
+      case 129: r = 1.0f; g = 1.0f; b = 1.0f; innerIllumination = 0.5f; break;
       }
 
       gNbMaterials = gpuKernel->addMaterial();
@@ -345,34 +345,36 @@ void createMaterials( CudaKernel* gpuKernel, const bool& random )
 
 void initializeKernel( const bool& random )
 {
-   gpuKernel = new CudaKernel(false, 460, 0, 0);
-   gpuKernel->setSceneInfo( gSceneInfo );
-   gpuKernel->initBuffers();
+   gpuKernel->resetAll();
+   gpuKernel->setFrame(0);
+
    createMaterials( gpuKernel, random );
 
-   // Load textures
-   std::string folderName("./textures");
-   folderName += "/";
+   /*
 	// Textures
-   for( int i(0); i<NB_MAX_TEXTURES; i++)
-	{
-		std::string filename(folderName);
-		char tmp[5];
-#ifdef WIN32
-		sprintf_s(tmp, "%03d", i);
-#else
-		sprintf(tmp, "%03d", i);
-#endif
-		filename += tmp;
-		filename += ".bmp";
-		gpuKernel->addTexture(filename.c_str());
-	}
+   HANDLE hFind;
+   WIN32_FIND_DATA FindData;
+
+   std::string path("./textures/");
+   std::string fullFilter(path);
+   fullFilter += "*.bmp";
+   hFind = FindFirstFile(fullFilter.c_str(), &FindData);
+   int i(0);
+   while (FindNextFile(hFind, &FindData))
+   {
+      std::string fullPath(path);
+      fullPath+=FindData.cFileName;
+      int slot = gpuKernel->loadTextureFromFile(i,fullPath);
+      LOG_INFO(3, "Texture " << fullPath << " loaded into slot " << slot );
+      i++;
+   }
+   */
 }
 
 void destroyKernel()
 {
-   delete gpuKernel;
-   gpuKernel = nullptr;
+   //delete gpuKernel;
+   //gpuKernel = nullptr;
 }
 
 void initializeMolecules()
@@ -536,7 +538,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
          sideSize, -10.f, -sideSize,
          sideSize, -10.f,  sideSize,
                0.f, -10.f,       0.f, 
-         material,  1,         1);
+         material);
 
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
    gpuKernel->setPrimitive( gNbPrimitives, 
@@ -544,7 +546,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
          -sideSize, -10.f,  sideSize,
          -sideSize, -10.f, -sideSize,
                0.f, 0.f,       0.f, 
-         material,  1,         1);
+         material);
 
    // Wall
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
@@ -553,7 +555,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
          sideSize,         -10.f,  sideSize,
          sideSize, sideSize-10.f,  sideSize,
                0.f,      0.f,       0.f, 
-         material,       1,         1);
+         material);
       
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
    gpuKernel->setPrimitive( gNbPrimitives, 
@@ -561,7 +563,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
          -sideSize, sideSize-10.f,  sideSize,
          -sideSize,         -10.f,  sideSize,
                0.f,      0.f,       0.f, 
-         material,       1,         1);
+         material);
 
    // Right Side
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
@@ -570,7 +572,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
          sideSize,         -10.f,  sideSize+10.f,
          sideSize, sideSize-10.f,  sideSize+10.f,
                0.f,      0.f,       0.f, 
-         material,       1,         1);
+         material);
 
    // Left Side
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
@@ -579,11 +581,11 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
          -sideSize,         -10.f,  sideSize+10.f,
          -sideSize, sideSize-10.f,  sideSize+10.f,
                0.f,      0.f,       0.f, 
-         material,       1,         1);
+         material);
 
    // Lamp
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+(index++);
-   gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
+   gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129);
 
    // Build Chart
    for( int s(0); s<NB_MAX_SERIES; ++s )
@@ -607,14 +609,14 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
             x+columnSize.x,                0.f, offsetZ,
             x+columnSize.x, ymin*columnSize.y, offsetZ,
                         0.f,                0.f, 0.f, 
-                  material,                  1,   1);
+                  material);
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
          gpuKernel->setPrimitive( gNbPrimitives, 
             x+columnSize.x, ymin*columnSize.y, offsetZ,
                            x, ymin*columnSize.y, offsetZ,
                            x,                0.f, offsetZ, 
                         0.f,                0.f, 0.f, 
-                  material,                  1,   1);
+                  material);
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
          if( value < (*it ) )
          {
@@ -623,7 +625,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
                x+columnSize.x, value*columnSize.y, offsetZ,
                x+columnSize.x, (*it)*columnSize.y, offsetZ,
                            0.f,                0.f, 0.f, 
-                     material,                  1,   1);
+                     material);
          }
          else
          {
@@ -632,7 +634,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
                               x, (*it)*columnSize.y, offsetZ,
                x+columnSize.x, (*it)*columnSize.y, offsetZ,
                            0.f,                0.f, 0.f, 
-                     material,                  1,   1);
+                     material);
          }
 
          // Back
@@ -642,14 +644,14 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
             x+columnSize.x,                0.f, columnSize.z + offsetZ,
             x+columnSize.x,  ymin*columnSize.y, columnSize.z + offsetZ,
                         0.f,                0.f, 0.f, 
-                  material,                  1,   1);
+                  material);
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
          gpuKernel->setPrimitive( gNbPrimitives, 
             x+columnSize.x, ymin*columnSize.y, columnSize.z + offsetZ,
                            x, ymin*columnSize.y, columnSize.z + offsetZ,
                            x,               0.f, columnSize.z + offsetZ, 
                         0.f,               0.f, 0.f, 
-                  material,                 1,   1);
+                  material);
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
          if( value < (*it ) )
          {
@@ -658,7 +660,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
                x+columnSize.x, value*columnSize.y, columnSize.z + offsetZ,
                x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
                            0.f,                0.f, 0.f, 
-                     material,                  1,   1);
+                     material);
          }
          else
          {
@@ -667,7 +669,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
                               x, (*it)*columnSize.y, columnSize.z + offsetZ,
                x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
                            0.f,                0.f, 0.f, 
-                     material,                  1,   1);
+                     material);
          }
 
          //top
@@ -677,14 +679,14 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
             x+columnSize.x, (*it)*columnSize.y, offsetZ,
             x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
                         0.f,                0.f, 0.f, 
-                  material,                  1,   1);
+                  material);
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
          gpuKernel->setPrimitive( gNbPrimitives, 
             x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
                            x, value*columnSize.y, columnSize.z + offsetZ,
                            x, value*columnSize.y, offsetZ, 
                         0.f,                0.f, 0.f, 
-                  material,                  1,   1);
+                  material);
 
          // Sides
          if( i==0 )
@@ -695,14 +697,14 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
                               x, value*columnSize.y, offsetZ,
                               x, value*columnSize.y, columnSize.z + offsetZ,
                            0.f,                0.f, 0.f, 
-                     material,                  1,   1);
+                     material);
             gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
             gpuKernel->setPrimitive( gNbPrimitives, 
                               x, value*columnSize.y, columnSize.z + offsetZ, 
                               x,                0.f, columnSize.z + offsetZ,
                               x,                0.f, offsetZ,
                            0.f,                0.f, 0.f, 
-                     material,                  1,   1);
+                     material);
          }
 
          if( i==chartInfo.values[s].size()-2 )
@@ -713,14 +715,14 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
                x+columnSize.x, (*it)*columnSize.y, offsetZ,
                x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
                            0.f,                0.f, 0.f, 
-                     material,                  1,   1);
+                     material);
             gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+(index++);
             gpuKernel->setPrimitive( gNbPrimitives, 
                x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ, 
                x+columnSize.x,                0.f, columnSize.z + offsetZ,
                x+columnSize.x,                0.f, offsetZ,
                            0.f,                0.f, 0.f, 
-                     material,                  1,   1);
+                     material);
          }
 
          value = (*it);
@@ -790,7 +792,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
          sideSize, -10.f, -sideSize,
          sideSize, -10.f,  sideSize,
                0.f, -10.f,       0.f, 
-         material,  1,         1);
+         material);
 
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+1;
    gpuKernel->setPrimitive( gNbPrimitives, 
@@ -798,7 +800,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
          -sideSize, -10.f,  sideSize,
          -sideSize, -10.f, -sideSize,
                0.f, 0.f,       0.f, 
-         material,  1,         1);
+         material);
 
    // Wall
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+2;
@@ -807,7 +809,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
          sideSize,         -10.f,  sideSize,
          sideSize, sideSize-10.f,  sideSize,
                0.f,      0.f,       0.f, 
-         material,       1,         1);
+         material);
       
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+3;
    gpuKernel->setPrimitive( gNbPrimitives, 
@@ -815,11 +817,11 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
          -sideSize, sideSize-10.f,  sideSize,
          -sideSize,         -10.f,  sideSize,
                0.f,      0.f,       0.f, 
-         material,       1,         1);
+         material);
 
    // Lamp
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+4;
-   gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129, 1 , 1);
+   gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129);
 
    // Build Chart
    int index(0);
@@ -838,7 +840,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
             x+columnSize.x,                0.f, offsetZ,
             x+columnSize.x, (*it)*columnSize.y, offsetZ,
                         0.f,                0.f, 0.f, 
-                  material,                  1,   1);
+                  material);
 
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+6+index;
          gpuKernel->setPrimitive( gNbPrimitives, 
@@ -846,7 +848,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
                            x, (*it)*columnSize.y, offsetZ,
                            x,                0.f, offsetZ, 
                         0.f,                0.f, 0.f, 
-               material,                      1,   1);
+               material);
 
          // Back
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+7+index;
@@ -855,7 +857,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
             x+columnSize.x,            0.f, columnSize.z + offsetZ,
             x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
                      0.f,            0.f,      0.f, 
-               material,              1,        1);
+               material);
 
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+8+index;
          gpuKernel->setPrimitive( gNbPrimitives, 
@@ -863,7 +865,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
                      x, (*it)*columnSize.y, columnSize.z + offsetZ,
                      x,            0.f, columnSize.z + offsetZ, 
                      0.f,            0.f,      0.f, 
-               material,              1,        1);
+               material);
 
          // Right side
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+9+index;
@@ -872,7 +874,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
             x+columnSize.x,                0.f, columnSize.z + offsetZ,
             x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
                      0.f,            0.f,      0.f, 
-               material,              1,        1);
+               material);
 
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+10+index;
          gpuKernel->setPrimitive( gNbPrimitives, 
@@ -880,7 +882,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
             x+columnSize.x, (*it)*columnSize.y,          0.f + offsetZ,
             x+columnSize.x,                0.f,          0.f + offsetZ, 
                      0.f,            0.f,         0.f, 
-               material,              1,        1);
+               material);
 
          // Left side
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+11+index;
@@ -889,7 +891,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
                      x,                0.f, columnSize.z + offsetZ,
                      x, (*it)*columnSize.y, columnSize.z + offsetZ,
                      0.f,            0.f,      0.f, 
-               material,              1,        1);
+               material);
 
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+12+index;
          gpuKernel->setPrimitive( gNbPrimitives, 
@@ -897,7 +899,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
                      x, (*it)*columnSize.y,      0.f + offsetZ,
                      x,            0.f,      0.f + offsetZ, 
                      0.f,            0.f,      0.f, 
-               material,              1,        1);
+               material);
 
          // Top side
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+13+index;
@@ -906,7 +908,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
             x+columnSize.x, (*it)*columnSize.y,      0.f + offsetZ,
             x+columnSize.x, (*it)*columnSize.y, columnSize.z + offsetZ,
                      0.f,            0.f,      0.f, 
-               material,              1,        1);
+               material);
 
          gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+14+index;
          gpuKernel->setPrimitive( gNbPrimitives, 
@@ -914,7 +916,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
                      x, (*it)*columnSize.y, columnSize.z + offsetZ,
                      x, (*it)*columnSize.y,      0.f + offsetZ, 
                      0.f,            0.f,      0.f, 
-               material,              1,        1);
+               material);
 
          x += columnSpacing.x;
          ++it;
@@ -931,7 +933,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
          sideSize,         -10.f,  sideSize+10.f,
          sideSize, sideSize-10.f,  sideSize+10.f,
                0.f,      0.f,       0.f, 
-         material,       1,         1);
+         material);
 
    // Left Side
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptTriangle ) : gChartStartIndex+index+16;
@@ -940,7 +942,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
          -sideSize,         -10.f,  sideSize+10.f,
          -sideSize, sideSize-10.f,  sideSize+10.f,
                0.f,      0.f,       0.f, 
-         material,       1,         1);
+         material);
 
    gNbBoxes = gpuKernel->compactBoxes(update);
 
@@ -1174,7 +1176,7 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
 
    // Lamp
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex;
-   gpuKernel->setPrimitive( gNbPrimitives,  -5000.f, 5000.f, -5000.f, 50.f, 0.f, 0.f, 129, 1 , 1);
+   gpuKernel->setPrimitive( gNbPrimitives,  -5000.f, 5000.f, -5000.f, 50.f, 0.f, 0.f, 129);
 
    if( update )
    {
@@ -1368,15 +1370,15 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
    long renderingTime = GetTickCount();
 
    // Lamp
-   gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex;
-   gpuKernel->setPrimitive( gNbPrimitives,  10000.f, 10000.f, -5000.f, 200.f, 0.f, 50.f, 129, 1 , 1);
+   gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex;
+   gpuKernel->setPrimitive( gNbPrimitives,  -4000.f, 4000.f, -10000.f, 200.f, 0.f, 50.f, 129);
 
    if( update )
    {
       FileMarshaller fm;
       float3 size = fm.loadFromFile(*gpuKernel,fileName, 5000.f);
       gNbPrimitives = gpuKernel->addPrimitive( ptCheckboard );
-      gpuKernel->setPrimitive( gNbPrimitives, 0.f, -2520.f, 0.f, 10000.f, 0.f, 10000.f, 102, 100, 100);
+      gpuKernel->setPrimitive( gNbPrimitives, 0.f, -2520.f, 0.f, 10000.f, 0.f, 10000.f, 102);
    }
    gNbBoxes = gpuKernel->compactBoxes(update);
       
@@ -1633,6 +1635,10 @@ int main(int argc, char * argv[])
    Webserver.Host(10000);    
 
    initializeMolecules();
+
+   gpuKernel = new CudaKernel(false, 460, 0, 0);
+   gpuKernel->setSceneInfo( gSceneInfo );
+   gpuKernel->initBuffers();
 
    EventPump.StartEventLoop();
 
