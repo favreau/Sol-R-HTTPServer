@@ -39,8 +39,13 @@
 #include <Consts.h>
 #include <PDBReader.h>
 #include <FileMarshaller.h>
-#include <Cuda/CudaKernel.h>
 #include <Logging.h>
+
+#ifdef USE_CUDA
+#include <Cuda/CudaKernel.h>
+#else
+#include <CPUKernel.h>
+#endif // USE_CUDA
 
 #include "wininet.h" // for clearing URL cache DeleteUrlCacheEntry
 #pragma comment(lib, "wininet.lib") // for clearing URL cache DeleteUrlCacheEntry
@@ -115,7 +120,11 @@ std::vector<std::string> gProteinNames;
 // ----------------------------------------------------------------------
 // Scene
 // ----------------------------------------------------------------------
+#ifdef USE_CUDA
 CudaKernel* gpuKernel = nullptr;
+#else
+CPUKernel* gpuKernel = nullptr;
+#endif // USE_CUDA
 
 unsigned int gWindowWidth  = 4096;
 unsigned int gWindowHeight = 4096;
@@ -251,7 +260,7 @@ ________________________________________________________________________________
 Create Random Materials
 ________________________________________________________________________________
 */
-void createMaterials( CudaKernel* gpuKernel, const bool& random )
+void createMaterials( GPUKernel* gpuKernel, const bool& random )
 {
    float4 specular;
    // Materials
@@ -1636,7 +1645,11 @@ int main(int argc, char * argv[])
 
    initializeMolecules();
 
+#ifdef USE_CUDA
    gpuKernel = new CudaKernel(false, 460, 0, 0);
+#else
+   gpuKernel = new CPUKernel(false, 460, 0, 0);
+#endif
    gpuKernel->setSceneInfo( gSceneInfo );
    gpuKernel->initBuffers();
 
