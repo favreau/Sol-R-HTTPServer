@@ -1384,8 +1384,9 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
 
    if( update )
    {
+      float3 center={0.f,0.f,0.f};
       FileMarshaller fm;
-      float3 size = fm.loadFromFile(*gpuKernel,fileName, 5000.f);
+      float3 size = fm.loadFromFile(*gpuKernel,fileName, center, 5000.f);
       gNbPrimitives = gpuKernel->addPrimitive( ptCheckboard );
       gpuKernel->setPrimitive( gNbPrimitives, 0.f, -2520.f, 0.f, 10000.f, 0.f, 10000.f, 102);
    }
