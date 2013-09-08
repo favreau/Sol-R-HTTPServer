@@ -24,6 +24,8 @@
 #define _USE_MATH_DEFINES
 #define _CRT_SECURE_NO_WARNINGS
 
+#define DEFAULT_LIGHT_MATERIAL 1029
+
 #include <lacewing.h>
 
 #include <map>
@@ -133,25 +135,9 @@ unsigned int gWindowDepth  = 4;
 float4 gBkGrey  = {0.5f, 0.5f, 0.5f, 0.f};
 float4 gBkBlack = {0.f, 0.f, 0.f, 0.f};
 int   gTotalPathTracingIterations = 100;
-int4  misc = {otJPEG,0,0,0};
+int4  gMisc = {otJPEG,0,0,2};
 
-SceneInfo gSceneInfo = 
-{ 
-   gWindowWidth,               // width
-   gWindowHeight,              // height
-   true,                       // graphicsLevel
-   20,                         // nbRayIterations
-   3.f,                        // transparentColor
-   500000.f,                   // viewDistance
-   0.8f,                       // shadowIntensity
-   20.f,                       // width3DVision
-   gBkGrey,                    // backgroundColor
-   false,                      // supportFor3DVision
-   false,                      // renderBoxes
-   0,                          // pathTracingIteration
-   1,                          // maxPathTracingIterations
-   misc                        // outputType
-};
+SceneInfo gSceneInfo;
 
 bool   gSceneHasChanged(true);
 bool   gSpecular(true);
@@ -180,13 +166,7 @@ float3 gViewAngles = { 0.f, 0.f, 0.f };
 // ----------------------------------------------------------------------
 // Post processing
 // ----------------------------------------------------------------------
-PostProcessingInfo gPostProcessingInfo = 
-{ 
-   ppe_none, 
-   10000.f, 
-   50.f, 
-   200 
-};
+PostProcessingInfo gPostProcessingInfo;
 
 // ----------------------------------------------------------------------
 // Utils
@@ -262,94 +242,175 @@ ________________________________________________________________________________
 */
 void createMaterials( GPUKernel* gpuKernel, const bool& random )
 {
-   float4 specular;
-   // Materials
-   specular.z = 0.0f;
-   specular.w = 1.0f;
-   for( int i(0); i<NB_MAX_MATERIALS; ++i ) 
-   {
-      specular.x = 0.2f;
-      specular.y = 100.f;
-      specular.z = 0.f;
-      specular.w = 0.1f;
+   int start(0);
+   int end(NB_MAX_MATERIALS);
+	// Materials
+	for( int i(start); i<end; ++i ) 
+	{
+		float4 specular = {0.f,0.f,0.f,0.f};
+		specular.x = 0.1f;
+		specular.y = 100.f;
+		specular.z = 0.f;
+		specular.w = 0.f;
 
-      float innerIllumination = 0.f;
+		float reflection   = 0.f;
+		float refraction   = 0.f;
+		float transparency = 0.f;
+		int   textureId = TEXTURE_NONE;
+      float3 innerIllumination = { 0.f, 40000.f, gSceneInfo.viewDistance.x };
+		bool procedural = false;
+		bool wireframe = false;
+		int  wireframeDepth = 0;
+		float r,g,b,noise;
       bool fastTransparency = false;
+      float fastTransparencyRefraction = 0.95f;
+       
+		r = rand()%1000/1000.f;
+		g = rand()%1000/1000.f;
+		b = rand()%1000/1000.f;
+      noise = 0.f;
 
-      // Transparency & refraction
-      float refraction = (i>=20 && i<80 && i%4==0)   ? 1.66f : 0.f; 
-      float transparency = (i>=20 && i<80 && i%4==0) ? 0.7f : 0.f; 
-      float reflection = (i>=20 && i<80 && i%4==1)   ? rand()%10/100.f : 0.f; 
+		switch( i )
+		{
+      // Molecules
+		case 0: r = 0.8f;        g = 0.7f;        b = 0.7f;         break; 
+		case 1: r = 0.7f;        g = 0.7f;        b = 0.7f;         break; // C Gray
+		case 2: r = 174.f/255.f; g = 174.f/255.f; b = 233.f/255.f;  break; // N Blue
+		case 3: r = 0.9f;        g = 0.4f;        b = 0.4f;         break; // O 
+		case 4: r = 0.9f;        g = 0.9f;        b = 0.9f;         break; // H White
+		case 5: r = 0.0f;        g = 0.5f;        b = 0.6f;         break; // B
+		case 6: r = 0.0f;        g = 0.0f;        b = 0.7f;         break; // F
+		case 7: r = 0.8f;        g = 0.6f;        b = 0.3f;         break; // P
+		case 8: r = 241.f/255.f; g = 196.f/255.f; b = 107.f/255.f;  break; // S Yellow
+		case 9: r = 0.9f;        g = 0.3f;        b = 0.3f;         break; // V
 
-      int   textureId = MATERIAL_NONE;
-      float r,g,b;
-      float noise = 0.f;
-      bool  procedural = false;
+      // transparent Molecules
+      case 10: r = 0.f; g = 0.f; b = 1.f; fastTransparency=true; transparency=0.9f; refraction=fastTransparencyRefraction; specular.x=0.1f; specular.y=100.f; break; 
+      case 11: r = 1.f; g = 1.f; b = 1.f; specular.x=0.1f; specular.y=10.f; break; 
 
-      r = .5f+rand()%50/100.f;
-      g = .5f+rand()%50/100.f;
-      b = .5f+rand()%50/100.f;
+      case 100: r=1.f;  g=1.f;  b=1.f; noise=0.f; specular.x=0.1f; specular.y=10.f; reflection=0.3f; break;
+
+      // Sky Box  
+		case 101: r=1.f; g=1.f; b=1.f; wireframe=true; textureId = 0; break; 
+		case 102: r=1.f; g=1.f; b=1.f; wireframe=true; textureId = 1; break; 
+		case 103: r=1.f; g=1.f; b=1.f; wireframe=true; textureId = 2; break; 
+		case 104: r=1.f; g=1.f; b=1.f; wireframe=true; textureId = 3; break; 
+		case 105: r=1.f; g=1.f; b=1.f; wireframe=true; textureId = 4; break; 
+		case 106: r=1.f; g=1.f; b=1.f; wireframe=true; textureId = 5; break; 
       
-      if( random )
-      {
-         switch( i )
+      // Cornell Box
+      case 107: r=127.f/255.f; g=127.f/255.f; b=127.f/255.f; specular.x = 0.2f; specular.y = 10.f;  specular.w = 0.3f; break;
+      case 108: r=154.f/255.f; g=94.f/255.f;  b=64.f/255.f;  specular.x = 0.1f; specular.y = 100.f; specular.w = 0.1f; break;
+		case 109: r=92.f/255.f;  g=93.f/255.f;  b=150.f/255.f; specular.x = 0.3f; specular.y = 20.f;  specular.w = 0.5f; break;
+		case 110: r=92.f/255.f;  g=150.f/255.f; b=93.f/255.f;  specular.x = 0.3f; specular.y = 20.f;  specular.w = 0.5f; break;
+		
+      // Fractals
+      case 111: r=127.f/255.f; g=127.f/255.f; b=127.f/255.f; specular.x = 0.2f; specular.y = 10.f;  specular.w = 0.3f; wireframe=false; textureId=TEXTURE_MANDELBROT; break;
+      case 112: r=154.f/255.f; g=94.f/255.f;  b=64.f/255.f;  specular.x = 0.1f; specular.y = 100.f; specular.w = 0.1f; wireframe=false; textureId=TEXTURE_JULIA; break;
+
+      // Basic reflection
+      case 113: /*r=0.5f; g=1.0f; b=0.7f; */reflection = 0.5f; refraction=1.6f; transparency=0.7f; break;
+		case 114: /*r=1.f; g=1.f; b=1.f;*/ reflection = 0.9f; break;
+      case 115: r=0.5f; g=1.0f; b=0.7f; reflection = 0.f; textureId = 0; break;
+      case 116: /*r=0.f; g=0.f; b=0.f;*/ reflection = 0.1f; refraction=1.66f; transparency=0.5f; specular.x = 0.5f; specular.y = 10.f;break;
+		case 117: r=1.f; g=0.f; b=0.f; reflection = 0.5f; break;
+		case 118: r=0.f; g=1.f; b=1.f; reflection = 0.5f; break;
+
+      // White
+      case 119: r=1.f; g=1.f; b=1.f; break;
+
+      // Wireframe
+         /*
+		case 120: r=1.f; g=0.f; b=0.f; wireframe = true; break;
+		case 121: r=0.f; g=1.f; b=0.f; wireframe = true; break;
+		case 122: r=0.f; g=0.f; b=1.f; wireframe = true; break;
+      */
+      case 120: innerIllumination.x=.5f; break; 
+      case 121: innerIllumination.x=.5f; break; 
+      case 122: innerIllumination.x=.5f; break; 
+      case 123: innerIllumination.x=.5f; break; 
+		case 124: innerIllumination.x=.5f; break; 
+		case 125: innerIllumination.x=.5f; break; 
+		case 126: innerIllumination.x=.5f; break; 
+		case 127: innerIllumination.x=.5f; break; 
+		case 128: innerIllumination.x=.5f; break; 
+		case DEFAULT_LIGHT_MATERIAL: r=1.f; g=1.f; b=1.f; innerIllumination.x=1.f; break; 
+
+		default:
+         if( i<60 )
          {
-         case  100: r = 0.7f; g = 0.6f; b = 0.5f;  reflection = 0.1f; break;
-         case  101: r = 92.f/255.f; g= 93.f/255.f; b=150.f/255.f;  refraction = 1.33f; transparency=0.9f; break;
-         case  102: r = 241.f/255.f; g = 196.f/255.f; b = 107.f/255.f; reflection = 0.1f; break;
-         case  103: r = 127.f/255.f; g=127.f/255.f; b=127.f/255.f; reflection = 0.7f; break;
+            if( i%2==0 ) 
+            {
+               //fastTransparency = true;
+               transparency=0.7f; 
+               refraction=fastTransparencyRefraction;
+            }
+
+			   r = 0.2f+rand()%800/1000.f;
+			   g = 0.2f+rand()%800/1000.f;
+			   b = 0.2f+rand()%800/1000.f;
+            switch( rand()%8 )
+            {
+            case 0: 
+               {
+                  //textureId=rand()%10; 
+                  break;
+               }
+            case 1:
+               {
+				      reflection = 0.9f;
+			         specular.x = 1.0f;
+			         specular.y = 10.f*(1+rand()%50);
+		            specular.w = 0.0f;
+                  break;
+               }
+            case 2:
+               {
+				      refraction = 0.8f+rand()%2000/1000.f; 
+				      transparency= 0.6f+rand()%400/1000.f;
+				      reflection = rand()%1000/1000.f;
+                  break;
+               }
+            case 3:
+               {
+				      refraction = 0.8f+rand()%2000/1000.f; 
+				      transparency= 0.6f+rand()%400/1000.f;
+				      reflection = rand()%1000/1000.f;
+                  break;
+               }
+            case 4:
+               {
+				      reflection = rand()%1000/1000.f;
+                  break;
+               }
+            }
+			   break;
+		   }
+         else
+         {
+            // from index 60, materials are textured!
+            if( (i-60)<static_cast<int>(gpuKernel->getNbActiveTextures()) )
+            {
+               textureId = i-60;
+            }
+            else
+            {
+               reflection = 1.f;
+            }
          }
       }
-      else
-      {
-         // Proteins
-         switch( i%10 )
-         {
-         case  0: r = 0.8f;        g = 0.7f;        b = 0.7f;         break; 
-         case  1: r = 0.7f;        g = 0.7f;        b = 0.7f;         break; // C Gray
-         case  2: r = 174.f/255.f; g = 174.f/255.f; b = 233.f/255.f;  break; // N Blue
-         case  3: r = 0.9f;        g = 0.4f;        b = 0.4f;         break; // O 
-         case  4: r = 0.9f;        g = 0.9f;        b = 0.9f;         break; // H White
-         case  5: r = 0.0f;        g = 0.5f;        b = 0.6f;         break; // B
-         case  6: r = 0.5f;        g = 0.5f;        b = 0.7f;         break; // F Blue
-         case  7: r = 0.8f;        g = 0.6f;        b = 0.3f;         break; // P
-         case  8: r = 241.f/255.f; g = 196.f/255.f; b = 107.f/255.f;  break; // S Yellow
-         case  9: r = 0.9f;        g = 0.3f;        b = 0.3f;         break; // V
-         }
-         fastTransparency = true;
-      }
+      int material = gpuKernel->addMaterial();
+		gpuKernel->setMaterial(
+			material, r, g, b, noise,
+			reflection, refraction, procedural, 
+			wireframe, wireframeDepth,
+			transparency, textureId,
+			specular.x, specular.y, specular.w, 
+         innerIllumination.x, innerIllumination.y, innerIllumination.z,
+			fastTransparency);
+	}
 
-
-      switch(i)
-      {
-         // Wall materials
-      case 80: r=127.f/255.f; g=127.f/255.f; b=127.f/255.f; specular.x = 0.2f; specular.y = 10.f; specular.w = 0.3f; break;
-      case 81: r=154.f/255.f; g= 94.f/255.f; b= 64.f/255.f; specular.x = 0.1f; specular.y = 100.f; specular.w = 0.1f; break;
-      case 82: r= 92.f/255.f; g= 93.f/255.f; b=150.f/255.f; break; 
-      case 83: r = 100.f/255.f; g = 20.f/255.f; b = 10.f/255.f; break;
-
-         // Lights
-      case 125: r = 1.0f; g = 1.0f; b = 1.0f; refraction = 1.66f; transparency=0.9f; break;
-      case 126: r = 1.0f; g = 1.0f; b = 1.0f; specular.x = 0.f; specular.y = 100.f; specular.w = 0.1f; reflection = 0.8f; break;
-      case 127: r = 1.0f; g = 1.0f; b = 0.f; innerIllumination = 0.5f; break;
-      case 128: r = 1.0f; g = 1.0f; b = 1.f; innerIllumination = 0.5f; break;
-      case 129: r = 1.0f; g = 1.0f; b = 1.0f; innerIllumination = 0.5f; break;
-      }
-
-      gNbMaterials = gpuKernel->addMaterial();
-      gpuKernel->setMaterial( 
-         gNbMaterials,
-         r, g, b, noise,
-         reflection, 
-         refraction,
-         procedural,
-         false,0,
-         transparency,
-         textureId,
-         specular.x, specular.y, specular.w, 
-         innerIllumination, 5.f, gSceneInfo.viewDistance.x,
-         fastTransparency);
-   }
+   gpuKernel->compactBoxes(false);
 }
 
 void initializeKernel( const bool& random )
@@ -525,13 +586,13 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
    int frame(0);
    float3 cameraOrigin = chartInfo.viewPos;
    float3 cameraTarget = chartInfo.viewPos;
-   cameraTarget.z += 5000.f;
+   cameraTarget.z += 10000.f;
    float3 cameraAngles = gViewAngles;
 
    float3 columnSize    = { 400.f, 40.f, 400.f };
    float3 columnSpacing = { 400.f, 40.f, 800.f };
    float3 size = {500.f,500.f,500.f};
-   int material = 100;
+   int material = 0;
 
    SceneInfo sceneInfo = chartInfo.sceneInfo;
    size_t len(sceneInfo.width.x*sceneInfo.height.x*gWindowDepth);
@@ -594,7 +655,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
 
    // Lamp
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+(index++);
-   gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129);
+   gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, DEFAULT_LIGHT_MATERIAL);
 
    // Build Chart
    for( int s(0); s<NB_MAX_SERIES; ++s )
@@ -830,7 +891,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
 
    // Lamp
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptXZPlane ) : gChartStartIndex+4;
-   gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, 129);
+   gpuKernel->setPrimitive( gNbPrimitives,  static_cast<float>(rand()%10000-5000), 5000.f, -2000.f-static_cast<float>(rand()%5000), 2000.f, 0.f, 500.f, DEFAULT_LIGHT_MATERIAL);
 
    // Build Chart
    int index(0);
@@ -1185,16 +1246,17 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
 
    // Lamp
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex;
-   gpuKernel->setPrimitive( gNbPrimitives,  -5000.f, 5000.f, -5000.f, 50.f, 0.f, 0.f, 129);
+   gpuKernel->setPrimitive( gNbPrimitives,  -5000.f, 5000.f, -5000.f, 50.f, 0.f, 0.f, DEFAULT_LIGHT_MATERIAL);
 
    if( update )
    {
+      float3 objectScale = { 20.f,20.f,20.f };
       PDBReader reader;
-      float4 size = reader.loadAtomsFromFile(
+      float3 size = reader.loadAtomsFromFile(
          fileName,*gpuKernel,
-         static_cast<GeometryType>(moleculeInfo.structureType),50.f,20.f,
+         static_cast<GeometryType>(moleculeInfo.structureType),50.f, 20.f,
          moleculeInfo.scheme,
-         20.f,false);
+         objectScale,false);
    }
    gNbBoxes = gpuKernel->compactBoxes(update);
 
@@ -1380,15 +1442,15 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
 
    // Lamp
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex;
-   gpuKernel->setPrimitive( gNbPrimitives,  -4000.f, 4000.f, -10000.f, 200.f, 0.f, 50.f, 129);
+   gpuKernel->setPrimitive( gNbPrimitives,  -4000.f, 4000.f, -10000.f, 200.f, 0.f, 50.f, DEFAULT_LIGHT_MATERIAL);
 
    if( update )
    {
       float3 center={0.f,0.f,0.f};
       FileMarshaller fm;
       float3 size = fm.loadFromFile(*gpuKernel,fileName, center, 5000.f);
-      gNbPrimitives = gpuKernel->addPrimitive( ptCheckboard );
-      gpuKernel->setPrimitive( gNbPrimitives, 0.f, -2520.f, 0.f, 10000.f, 0.f, 10000.f, 102);
+      gNbPrimitives = gpuKernel->addPrimitive( ptXZPlane );
+      gpuKernel->setPrimitive( gNbPrimitives, 0.f, -2520.f, 0.f, 10000.f, 0.f, 10000.f, 100);
    }
    gNbBoxes = gpuKernel->compactBoxes(update);
       
@@ -1651,7 +1713,31 @@ int main(int argc, char * argv[])
 #else
    gpuKernel = new CPUKernel(false, 460, 0, 0);
 #endif
+   gSceneInfo.width.x = gWindowWidth;
+	gSceneInfo.height.x = gWindowHeight; 
+   gSceneInfo.graphicsLevel.x = 4;
+   gSceneInfo.nbRayIterations.x = 10;
+   gSceneInfo.transparentColor.x = 2.f;
+   gSceneInfo.viewDistance.x = 200000.f;
+   gSceneInfo.shadowIntensity.x = 0.8f;
+   gSceneInfo.width3DVision.x = 463.f;
+   gSceneInfo.backgroundColor.x = 0.5f;
+   gSceneInfo.backgroundColor.y = 0.5;
+   gSceneInfo.backgroundColor.z = 0.5f;
+   gSceneInfo.backgroundColor.w = 0.f;
+   gSceneInfo.renderingType.x = vtStandard; //vt3DVision; // 
+   gSceneInfo.renderBoxes.x = 0;
+   gSceneInfo.pathTracingIteration.x = 0;
+   gSceneInfo.maxPathTracingIterations.x = gTotalPathTracingIterations;
+   gSceneInfo.misc = gMisc;
+
+   gPostProcessingInfo.type.x   = ppe_none;
+   gPostProcessingInfo.param1.x = 10000.f; 
+   gPostProcessingInfo.param2.x = 400.f;
+   gPostProcessingInfo.param3.x = 200;
+
    gpuKernel->setSceneInfo( gSceneInfo );
+   gpuKernel->setPostProcessingInfo( gPostProcessingInfo );
    gpuKernel->initBuffers();
 
    EventPump.StartEventLoop();
