@@ -1230,7 +1230,8 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
 {
    float3 cameraOrigin = moleculeInfo.viewPos;
    float3 cameraTarget = moleculeInfo.viewPos;
-   cameraTarget.z += 5000.f;
+   cameraOrigin.z += 4000.f;
+   cameraTarget.z += 9000.f;
    float3 cameraAngles = gViewAngles;
 
    std::string fileName("./Pdb/");
@@ -1269,6 +1270,8 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
    // Shadows
    sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
 
+   sceneInfo.viewDistance.x = 100000.f;
+
    // Rotation
    //gpuKernel->rotatePrimitives( gRotationCenter, moleculeInfo.rotationAngles, 0, gNbBoxes );
 
@@ -1298,7 +1301,7 @@ void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, c
    MoleculeInfo moleculeInfo;
    moleculeInfo.moleculeId = gProteinNames[gCurrentProtein];
    moleculeInfo.structureType = 0;
-   moleculeInfo.scheme=1;
+   moleculeInfo.scheme=0;
    moleculeInfo.viewPos = gViewPos;
    moleculeInfo.rotationAngles.x = 0.f;
    moleculeInfo.rotationAngles.y = 0.f;
