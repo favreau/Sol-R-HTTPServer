@@ -114,6 +114,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release Cuda|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>E:\Deployments\bin\</OutDir>
+    <TargetName>SoL_R_HTTPServer</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

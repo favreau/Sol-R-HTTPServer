@@ -1247,7 +1247,7 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
 
    // Lamp
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex;
-   gpuKernel->setPrimitive( gNbPrimitives,  -5000.f, 5000.f, -5000.f, 50.f, 0.f, 0.f, DEFAULT_LIGHT_MATERIAL);
+   gpuKernel->setPrimitive( gNbPrimitives,  -10000.f, 10000.f, -10000.f, 50.f, 0.f, 0.f, DEFAULT_LIGHT_MATERIAL);
 
    if( update )
    {
@@ -1425,7 +1425,7 @@ void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, c
    gNbCalls++;
 }
 
-void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, const bool& update )
+void renderIRT( Lacewing::Webserver::Request& request, IrtInfo& irtInfo, const bool& update )
 {
    float3 cameraOrigin = irtInfo.viewPos;
    float3 cameraTarget = irtInfo.viewPos;
@@ -1439,13 +1439,12 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
    // --------------------------------------------------------------------------------
    // Create 3D Scene
    // --------------------------------------------------------------------------------
-   SceneInfo sceneInfo = irtInfo.sceneInfo;
-   size_t len(sceneInfo.width.x*sceneInfo.height.x*gWindowDepth);
+   size_t len(irtInfo.sceneInfo.width.x*irtInfo.sceneInfo.height.x*gWindowDepth);
    long renderingTime = GetTickCount();
 
    // Lamp
    gNbPrimitives = update ? gpuKernel->addPrimitive( ptSphere ) : gChartStartIndex;
-   gpuKernel->setPrimitive( gNbPrimitives,  -4000.f, 4000.f, -10000.f, 200.f, 0.f, 50.f, DEFAULT_LIGHT_MATERIAL);
+   gpuKernel->setPrimitive( gNbPrimitives,  -10000.f, 10000.f, -10000.f, 200.f, 0.f, 50.f, DEFAULT_LIGHT_MATERIAL);
 
    if( update )
    {
@@ -1465,21 +1464,21 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
    //postProcessingInfo.param3.x = (postProcessingInfo.type.x != 2 ) ? 40+sceneInfo.maxPathTracingIterations.x*5 : 16;
 
    // Shadows
-   sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
+   irtInfo.sceneInfo.graphicsLevel.x = (postProcessingInfo.type.x == 2) ? 4 : 5;
 
    // Rotation
    // gpuKernel->rotatePrimitives( gRotationCenter, irtInfo.rotationAngles, 0, gNbBoxes );
 
    // Background color
-   sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : sceneInfo.backgroundColor;
+   irtInfo.sceneInfo.backgroundColor = (postProcessingInfo.type.x == 2 ) ? gBkBlack : irtInfo.sceneInfo.backgroundColor;
 
    // Rendering process
    unsigned char* image = nullptr;
-   for( int i(0); i<sceneInfo.maxPathTracingIterations.x; ++i)
+   for( int i(0); i<irtInfo.sceneInfo.maxPathTracingIterations.x; ++i)
    {
-      sceneInfo.pathTracingIteration.x = i;
+      irtInfo.sceneInfo.pathTracingIteration.x = i;
       gpuKernel->setPostProcessingInfo( postProcessingInfo );
-      gpuKernel->setSceneInfo( sceneInfo );
+      gpuKernel->setSceneInfo( irtInfo.sceneInfo );
       cameraAngles = irtInfo.rotationAngles;
       gpuKernel->setCamera( cameraOrigin, cameraTarget, cameraAngles );
       gpuKernel->render_begin(0.f);
@@ -1487,7 +1486,7 @@ void renderIRT( Lacewing::Webserver::Request& request, const IrtInfo& irtInfo, c
       image = gpuKernel->getBitmap();
    }
    std::string filename = "irt.jpg";
-   saveToJPeg( request, filename, sceneInfo, image );
+   saveToJPeg( request, filename, irtInfo.sceneInfo, image );
 }
 
 void parseIRT( Lacewing::Webserver::Request& request, std::string& requestStr, const bool& update )
@@ -1718,7 +1717,7 @@ int main(int argc, char * argv[])
 #endif
    gSceneInfo.width.x = gWindowWidth;
 	gSceneInfo.height.x = gWindowHeight; 
-   gSceneInfo.graphicsLevel.x = 4;
+   gSceneInfo.graphicsLevel.x = 5;
    gSceneInfo.nbRayIterations.x = 10;
    gSceneInfo.transparentColor.x = 2.f;
    gSceneInfo.viewDistance.x = 200000.f;
