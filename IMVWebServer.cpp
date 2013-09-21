@@ -1596,7 +1596,7 @@ void parseURL( Lacewing::Webserver::Request& request )
    {
       if(!strcmp(p->Name(), "molecule"))
       {
-         if( gCurrentUsecase != ucPDB  || strcmp(gCurrentUsecaseValue.c_str(),p->Value()) )
+         if( gCurrentUsecase != ucPDB || strcmp(gCurrentUsecaseValue.c_str(),p->Value()) )
          {
             destroyKernel();
             initializeKernel(false);
