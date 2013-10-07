@@ -114,19 +114,9 @@ std::string gCurrentUsecaseValue("undefined");
 int gChartStartIndex=0;
 
 // ----------------------------------------------------------------------
-// Molecules
-// ----------------------------------------------------------------------
-size_t gCurrentProtein(0);
-std::vector<std::string> gProteinNames;
-
-// ----------------------------------------------------------------------
 // Scene
 // ----------------------------------------------------------------------
-#ifdef USE_CUDA
-CudaKernel* gpuKernel = nullptr;
-#else
-CPUKernel* gpuKernel = nullptr;
-#endif // USE_CUDA
+GPUKernel* gpuKernel = nullptr;
 
 unsigned int gWindowWidth  = 4096;
 unsigned int gWindowHeight = 4096;
@@ -439,32 +429,6 @@ void initializeKernel( const bool& random )
       i++;
    }
    */
-}
-
-void destroyKernel()
-{
-   //delete gpuKernel;
-   //gpuKernel = nullptr;
-}
-
-void initializeMolecules()
-{
-   // Proteins vector
-   gProteinNames.push_back("3VM9");
-   gProteinNames.push_back("1BNA");
-   gProteinNames.push_back("3SUI");
-   gProteinNames.push_back("1ACY");
-   gProteinNames.push_back("3VHS");
-   gProteinNames.push_back("4FMC");
-   gProteinNames.push_back("3TGW");
-   gProteinNames.push_back("4FI3");
-   gProteinNames.push_back("3VJM");
-   gProteinNames.push_back("4FME");
-   gProteinNames.push_back("3U7D");
-   gProteinNames.push_back("3U2Z");
-   gProteinNames.push_back("3UA5");
-   gProteinNames.push_back("3VKL");
-   gProteinNames.push_back("3VKM");
 }
 
 static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
@@ -1179,7 +1143,7 @@ void loadPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molecul
    // --------------------------------------------------------------------------------
    std::string fileName("./Pdb/");
    std::string moleculeName;
-   moleculeName += ( moleculeInfo.moleculeId.length() == 0 ) ? gProteinNames[gCurrentProtein] : moleculeInfo.moleculeId;
+   moleculeName += moleculeInfo.moleculeId;
    moleculeName += ".pdb";
 
    fileName += moleculeName;
@@ -1235,7 +1199,7 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
    float3 cameraAngles = gViewAngles;
 
    std::string fileName("./Pdb/");
-   fileName += ( moleculeInfo.moleculeId.length() == 0 ) ? gProteinNames[gCurrentProtein] : moleculeInfo.moleculeId;
+   fileName += moleculeInfo.moleculeId;
    fileName += ".pdb";
 
    // --------------------------------------------------------------------------------
@@ -1299,7 +1263,7 @@ void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, c
 {
    LOG_INFO(1, "parsePDB" );
    MoleculeInfo moleculeInfo;
-   moleculeInfo.moleculeId = gProteinNames[gCurrentProtein];
+   moleculeInfo.moleculeId = "";
    moleculeInfo.structureType = 0;
    moleculeInfo.scheme=0;
    moleculeInfo.viewPos = gViewPos;
@@ -1598,7 +1562,6 @@ void parseURL( Lacewing::Webserver::Request& request )
       {
          if( gCurrentUsecase != ucPDB || strcmp(gCurrentUsecaseValue.c_str(),p->Value()) )
          {
-            destroyKernel();
             initializeKernel(false);
             gCurrentUsecase = ucPDB;
             gCurrentUsecaseValue = p->Value();
@@ -1610,7 +1573,6 @@ void parseURL( Lacewing::Webserver::Request& request )
       {
          if( gCurrentUsecase != ucIRT || strcmp(gCurrentUsecaseValue.c_str(),p->Value()) )
          {
-            destroyKernel();
             initializeKernel(true);
             gCurrentUsecase = ucIRT;
             gCurrentUsecaseValue = p->Value();
@@ -1622,7 +1584,6 @@ void parseURL( Lacewing::Webserver::Request& request )
       {
          //if( gCurrentUsecase != ucChart )
          {
-            destroyKernel();
             initializeKernel(true);
             gCurrentUsecase = ucChart;
             update=true;
@@ -1679,9 +1640,6 @@ void onGet(Lacewing::Webserver &Webserver, Lacewing::Webserver::Request &request
          request << "</body>";
          delete [] buffer;
 #endif // 0
-
-         gCurrentProtein++;
-         gCurrentProtein = gCurrentProtein%gProteinNames.size();
       }
       catch(...)
       {
@@ -1702,14 +1660,6 @@ void onGet(Lacewing::Webserver &Webserver, Lacewing::Webserver::Request &request
 
 int main(int argc, char * argv[])
 {
-   Lacewing::EventPump EventPump;
-   Lacewing::Webserver Webserver(EventPump);
-
-   Webserver.onGet(onGet);
-   Webserver.Host(10000);    
-
-   initializeMolecules();
-
 #ifdef USE_CUDA
    gpuKernel = new CudaKernel(false, 460, 0, 0);
 #else
@@ -1742,6 +1692,11 @@ int main(int argc, char * argv[])
    gpuKernel->setPostProcessingInfo( gPostProcessingInfo );
    gpuKernel->initBuffers();
 
+   // HTTP Stuff
+   Lacewing::EventPump EventPump;
+   Lacewing::Webserver Webserver(EventPump);
+   Webserver.onGet(onGet);
+   Webserver.Host(10000);    
    EventPump.StartEventLoop();
 
    return 0;
