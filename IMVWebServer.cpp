@@ -62,8 +62,8 @@ struct MoleculeInfo
    std::string moleculeId;
    int structureType;
    int scheme;
-   float3 viewPos;
-   float3 rotationAngles;
+   Vertex viewPos;
+   Vertex rotationAngles;
    SceneInfo sceneInfo;
    PostProcessingInfo postProcessingInfo;
 };
@@ -72,8 +72,8 @@ struct ChartInfo
 {
    int chartType;
    std::vector<float> values[NB_MAX_SERIES];
-   float3 viewPos;
-   float3 rotationAngles;
+   Vertex viewPos;
+   Vertex rotationAngles;
    SceneInfo sceneInfo;
    PostProcessingInfo postProcessingInfo;
 };
@@ -81,8 +81,8 @@ struct ChartInfo
 struct IrtInfo
 {
    std::string filename;
-   float3 viewPos;
-   float3 rotationAngles;
+   Vertex viewPos;
+   Vertex rotationAngles;
    SceneInfo sceneInfo;
    PostProcessingInfo postProcessingInfo;
 };
@@ -140,7 +140,7 @@ int    gNbMaxBoxes( 8*8*8 );
 int    gGeometryType(0);
 int    gAtomMaterialType(0);
 int    gBox(0);
-float3 gRotationCenter = { 0.f, 0.f, 0.f };
+Vertex gRotationCenter = { 0.f, 0.f, 0.f };
 
 // Scene description and behavior
 int gNbBoxes      = 0;
@@ -149,9 +149,9 @@ int gNbLamps      = 0;
 int gNbMaterials  = 0;
 
 // Camera information
-float3 gViewPos    = { 0.f, 0.f, -5000.f };
-float3 gViewDir    = { 0.f, 0.f, -2000.f };
-float3 gViewAngles = { 0.f, 0.f, 0.f };
+Vertex gViewPos    = { 0.f, 0.f, -5000.f };
+Vertex gViewDir    = { 0.f, 0.f, -2000.f };
+Vertex gViewAngles = { 0.f, 0.f, 0.f };
 
 // ----------------------------------------------------------------------
 // Post processing
@@ -194,9 +194,9 @@ void readfloats(const std::string value, std::vector<float>& values )
    }
 }
 
-float3 readfloat3(const std::string value)
+Vertex readVertex(const std::string value)
 {
-   float3 result = {0.f,0.f,0.f};
+   Vertex result = {0.f,0.f,0.f};
    std::string element;
    int i(0);
    for( int j(0); j<value.length(); ++j)
@@ -247,7 +247,7 @@ void createMaterials( GPUKernel* gpuKernel, const bool& random )
 		float refraction   = 0.f;
 		float transparency = 0.f;
 		int   textureId = TEXTURE_NONE;
-      float3 innerIllumination = { 0.f, 40000.f, gSceneInfo.viewDistance.x };
+      Vertex innerIllumination = { 0.f, 40000.f, gSceneInfo.viewDistance.x };
 		bool procedural = false;
 		bool wireframe = false;
 		int  wireframeDepth = 0;
@@ -548,14 +548,14 @@ void saveToJPeg( Lacewing::Webserver::Request& request, const std::string& filen
 void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, const bool& update )
 {
    int frame(0);
-   float3 cameraOrigin = chartInfo.viewPos;
-   float3 cameraTarget = chartInfo.viewPos;
+   Vertex cameraOrigin = chartInfo.viewPos;
+   Vertex cameraTarget = chartInfo.viewPos;
    cameraTarget.z += 10000.f;
-   float3 cameraAngles = gViewAngles;
+   Vertex cameraAngles = gViewAngles;
 
-   float3 columnSize    = { 400.f, 40.f, 400.f };
-   float3 columnSpacing = { 400.f, 40.f, 800.f };
-   float3 size = {500.f,500.f,500.f};
+   Vertex columnSize    = { 400.f, 40.f, 400.f };
+   Vertex columnSpacing = { 400.f, 40.f, 800.f };
+   Vertex size = {500.f,500.f,500.f};
    int material = 0;
 
    SceneInfo sceneInfo = chartInfo.sceneInfo;
@@ -802,14 +802,14 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
 
 void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo, const bool& update )
 {
-   float3 cameraOrigin = chartInfo.viewPos;
-   float3 cameraTarget = chartInfo.viewPos;
+   Vertex cameraOrigin = chartInfo.viewPos;
+   Vertex cameraTarget = chartInfo.viewPos;
    cameraTarget.z += 5000.f;
-   float3 cameraAngles = gViewAngles;
+   Vertex cameraAngles = gViewAngles;
 
-   float3 columnSize    = { 400.f, 40.f, 400.f };
-   float3 columnSpacing = { 440.f, 40.f, 800.f };
-   float3 size = {500.f,500.f,500.f};
+   Vertex columnSize    = { 400.f, 40.f, 400.f };
+   Vertex columnSpacing = { 440.f, 40.f, 800.f };
+   Vertex size = {500.f,500.f,500.f};
    int material = 100;
 
    SceneInfo sceneInfo = chartInfo.sceneInfo;
@@ -1074,7 +1074,7 @@ void parseChart( Lacewing::Webserver::Request& request, std::string& requestStr,
          // --------------------------------------------------------------------------------
          // rotation angles
          // --------------------------------------------------------------------------------
-         chartInfo.rotationAngles = readfloat3(p->Value());
+         chartInfo.rotationAngles = readVertex(p->Value());
          chartInfo.rotationAngles.x = chartInfo.rotationAngles.x/180.f*static_cast<float>(M_PI);
          chartInfo.rotationAngles.y = chartInfo.rotationAngles.y/180.f*static_cast<float>(M_PI);
          chartInfo.rotationAngles.z = chartInfo.rotationAngles.z/180.f*static_cast<float>(M_PI);
@@ -1084,7 +1084,7 @@ void parseChart( Lacewing::Webserver::Request& request, std::string& requestStr,
          // --------------------------------------------------------------------------------
          // Backgroud color
          // --------------------------------------------------------------------------------
-         float3 c = readfloat3(p->Value());
+         Vertex c = readVertex(p->Value());
          chartInfo.sceneInfo.backgroundColor.x = c.x/255.f;
          chartInfo.sceneInfo.backgroundColor.y = c.y/255.f;
          chartInfo.sceneInfo.backgroundColor.z = c.z/255.f;
@@ -1192,11 +1192,11 @@ void loadPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molecul
 
 void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& moleculeInfo, const bool& update )
 {
-   float3 cameraOrigin = moleculeInfo.viewPos;
-   float3 cameraTarget = moleculeInfo.viewPos;
+   Vertex cameraOrigin = moleculeInfo.viewPos;
+   Vertex cameraTarget = moleculeInfo.viewPos;
    cameraOrigin.z += 4000.f;
    cameraTarget.z += 9000.f;
-   float3 cameraAngles = gViewAngles;
+   Vertex cameraAngles = gViewAngles;
 
    std::string fileName("./Pdb/");
    fileName += moleculeInfo.moleculeId;
@@ -1215,9 +1215,9 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
 
    if( update )
    {
-      float3 objectScale = { 20.f,20.f,20.f };
+      Vertex objectScale = { 20.f,20.f,20.f };
       PDBReader reader;
-      float3 size = reader.loadAtomsFromFile(
+      Vertex size = reader.loadAtomsFromFile(
          fileName,*gpuKernel,
          static_cast<GeometryType>(moleculeInfo.structureType),50.f, 20.f,
          moleculeInfo.scheme,
@@ -1296,7 +1296,7 @@ void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, c
          // --------------------------------------------------------------------------------
          // rotation angles
          // --------------------------------------------------------------------------------
-         moleculeInfo.rotationAngles = readfloat3(p->Value());
+         moleculeInfo.rotationAngles = readVertex(p->Value());
          moleculeInfo.rotationAngles.x = moleculeInfo.rotationAngles.x/180.f*static_cast<float>(M_PI);
          moleculeInfo.rotationAngles.y = moleculeInfo.rotationAngles.y/180.f*static_cast<float>(M_PI);
          moleculeInfo.rotationAngles.z = moleculeInfo.rotationAngles.z/180.f*static_cast<float>(M_PI);
@@ -1306,7 +1306,7 @@ void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, c
          // --------------------------------------------------------------------------------
          // Backgroud color
          // --------------------------------------------------------------------------------
-         float3 c = readfloat3(p->Value());
+         Vertex c = readVertex(p->Value());
          moleculeInfo.sceneInfo.backgroundColor.x = c.x/255.f;
          moleculeInfo.sceneInfo.backgroundColor.y = c.y/255.f;
          moleculeInfo.sceneInfo.backgroundColor.z = c.z/255.f;
@@ -1391,10 +1391,10 @@ void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, c
 
 void renderIRT( Lacewing::Webserver::Request& request, IrtInfo& irtInfo, const bool& update )
 {
-   float3 cameraOrigin = irtInfo.viewPos;
-   float3 cameraTarget = irtInfo.viewPos;
+   Vertex cameraOrigin = irtInfo.viewPos;
+   Vertex cameraTarget = irtInfo.viewPos;
    cameraTarget.z += 5000.f;
-   float3 cameraAngles = gViewAngles;
+   Vertex cameraAngles = gViewAngles;
 
    std::string fileName("./irt/");
    fileName += irtInfo.filename;
@@ -1412,9 +1412,9 @@ void renderIRT( Lacewing::Webserver::Request& request, IrtInfo& irtInfo, const b
 
    if( update )
    {
-      float3 center={0.f,0.f,0.f};
+      Vertex center={0.f,0.f,0.f};
       FileMarshaller fm;
-      float3 size = fm.loadFromFile(*gpuKernel,fileName, center, 5000.f);
+      Vertex size = fm.loadFromFile(*gpuKernel,fileName, center, 5000.f);
       gNbPrimitives = gpuKernel->addPrimitive( ptXZPlane );
       gpuKernel->setPrimitive( gNbPrimitives, 0.f, -2520.f, 0.f, 10000.f, 0.f, 10000.f, 100);
    }
@@ -1482,7 +1482,7 @@ void parseIRT( Lacewing::Webserver::Request& request, std::string& requestStr, c
          // --------------------------------------------------------------------------------
          // rotation angles
          // --------------------------------------------------------------------------------
-         irtInfo.rotationAngles = readfloat3(p->Value());
+         irtInfo.rotationAngles = readVertex(p->Value());
          irtInfo.rotationAngles.x = irtInfo.rotationAngles.x/180.f*static_cast<float>(M_PI);
          irtInfo.rotationAngles.y = irtInfo.rotationAngles.y/180.f*static_cast<float>(M_PI);
          irtInfo.rotationAngles.z = irtInfo.rotationAngles.z/180.f*static_cast<float>(M_PI);
@@ -1492,7 +1492,7 @@ void parseIRT( Lacewing::Webserver::Request& request, std::string& requestStr, c
          // --------------------------------------------------------------------------------
          // Backgroud color
          // --------------------------------------------------------------------------------
-         float3 c = readfloat3(p->Value());
+         Vertex c = readVertex(p->Value());
          irtInfo.sceneInfo.backgroundColor.x = c.x/255.f;
          irtInfo.sceneInfo.backgroundColor.y = c.y/255.f;
          irtInfo.sceneInfo.backgroundColor.z = c.z/255.f;
