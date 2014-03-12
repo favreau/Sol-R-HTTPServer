@@ -1,6 +1,6 @@
 /* 
 * Molecular Visualization HTTP Server
-* Copyright (C) 2011-2012 Cyrille Favreau <cyrille_favreau@hotmail.com>
+* Copyright (C) 2011-2014 Cyrille Favreau <cyrille_favreau@hotmail.com>
 *
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU Library General Public
@@ -247,7 +247,7 @@ void createMaterials( GPUKernel* gpuKernel, const bool& random )
 		float refraction   = 0.f;
 		float transparency = 0.f;
 		int   textureId = TEXTURE_NONE;
-      Vertex innerIllumination = { 0.f, 40000.f, gSceneInfo.viewDistance.x };
+      float3 innerIllumination = { 0.f, 100000.f, gSceneInfo.viewDistance.x };
 		bool procedural = false;
 		bool wireframe = false;
 		int  wireframeDepth = 0;
