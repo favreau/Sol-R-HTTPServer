@@ -43,7 +43,7 @@
 #ifdef USE_CUDA
 #include <Cuda/CudaKernel.h>
 #else
-#include <CPUKernel.h>
+#include <OpenCL/OpenCLKernel.h>
 #endif // USE_CUDA
 
 #include "wininet.h" // for clearing URL cache DeleteUrlCacheEntry
@@ -1661,7 +1661,7 @@ int main(int argc, char * argv[])
 #ifdef USE_CUDA
    gpuKernel = new CudaKernel(false, 460, 0, 0);
 #else
-   gpuKernel = new CPUKernel(false, 460, 0, 0);
+   gpuKernel = new OpenCLKernel(false, 460, 0, 0);
 #endif
    gSceneInfo.size.x = gWindowWidth;
 	gSceneInfo.size.y = gWindowHeight; 
