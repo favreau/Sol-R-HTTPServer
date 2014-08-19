@@ -24,8 +24,6 @@
 #define _USE_MATH_DEFINES
 #define _CRT_SECURE_NO_WARNINGS
 
-#define DEFAULT_LIGHT_MATERIAL 1029
-
 #include <lacewing.h>
 
 #include <map>
@@ -38,7 +36,6 @@
 #include <fstream>
 #include <algorithm> 
 
-#include <Consts.h>
 #include <PDBReader.h>
 #include <FileMarshaller.h>
 #include <Logging.h>
@@ -246,6 +243,7 @@ void createMaterials( GPUKernel* gpuKernel, const bool& random )
 		float reflection   = 0.f;
 		float refraction   = 0.f;
 		float transparency = 0.f;
+      float opacity      = 0.f;
 		int   textureId = TEXTURE_NONE;
       float3 innerIllumination = { 0.f, 100000.f, gSceneInfo.viewDistance.x };
 		bool procedural = false;
@@ -391,12 +389,12 @@ void createMaterials( GPUKernel* gpuKernel, const bool& random )
       }
       int material = gpuKernel->addMaterial();
 		gpuKernel->setMaterial(
-			material, r, g, b, noise,
-			reflection, refraction, procedural, 
-			wireframe, wireframeDepth,
-			transparency, textureId,
-			specular.x, specular.y, specular.w, 
-         innerIllumination.x, innerIllumination.y, innerIllumination.z,
+			material,r,g,b,noise,
+			reflection,refraction,procedural, 
+			wireframe,wireframeDepth,
+			transparency, opacity,textureId,TEXTURE_NONE,TEXTURE_NONE,TEXTURE_NONE,TEXTURE_NONE,TEXTURE_NONE,TEXTURE_NONE,
+			specular.x,specular.y,specular.w,
+         innerIllumination.x,innerIllumination.y,innerIllumination.z,
 			fastTransparency);
 	}
 
@@ -511,7 +509,7 @@ void saveToJPeg( Lacewing::Webserver::Request& request, const std::string& filen
    size_t len(0);
    char* buffer = nullptr;
    long bufferLength;
-   jo_write_jpg(filename.c_str(), image, sceneInfo.width.x, sceneInfo.height.x, 3, 100 );
+   jo_write_jpg(filename.c_str(), image, sceneInfo.size.x, sceneInfo.size.y, 3, 100 );
    FILE * pFile;
    size_t result;
 
@@ -559,7 +557,7 @@ void buildAreaChart( Lacewing::Webserver::Request& request, ChartInfo& chartInfo
    int material = 0;
 
    SceneInfo sceneInfo = chartInfo.sceneInfo;
-   size_t len(sceneInfo.width.x*sceneInfo.height.x*gWindowDepth);
+   size_t len(sceneInfo.size.x*sceneInfo.size.y*gWindowDepth);
    long renderingTime = GetTickCount();
    int index(0);
 
@@ -813,7 +811,7 @@ void buildColumnChart( Lacewing::Webserver::Request& request, ChartInfo& chartIn
    int material = 100;
 
    SceneInfo sceneInfo = chartInfo.sceneInfo;
-   size_t len(sceneInfo.width.x*sceneInfo.height.x*gWindowDepth);
+   size_t len(sceneInfo.size.x*sceneInfo.size.y*gWindowDepth);
    long renderingTime = GetTickCount();
 
    // Ground
@@ -1115,8 +1113,8 @@ void parseChart( Lacewing::Webserver::Request& request, std::string& requestStr,
          case  5: gWindowWidth=4096; gWindowHeight=4096; break;
          default: gWindowWidth=512;  gWindowHeight=512;  
          }
-         chartInfo.sceneInfo.width.x  = gWindowWidth;
-         chartInfo.sceneInfo.height.x = gWindowHeight;
+         chartInfo.sceneInfo.size.x  = gWindowWidth;
+         chartInfo.sceneInfo.size.y = gWindowHeight;
       }
       else if ( strcmp(p->Name(),"postprocessing") == 0 )
       {
@@ -1206,7 +1204,7 @@ void renderPDB( Lacewing::Webserver::Request& request, const MoleculeInfo& molec
    // Create 3D Scene
    // --------------------------------------------------------------------------------
    SceneInfo sceneInfo = moleculeInfo.sceneInfo;
-   size_t len(sceneInfo.width.x*sceneInfo.height.x*gWindowDepth);
+   size_t len(sceneInfo.size.x*sceneInfo.size.y*gWindowDepth);
    long renderingTime = GetTickCount();
 
    // Lamp
@@ -1357,8 +1355,8 @@ void parsePDB( Lacewing::Webserver::Request& request, std::string& requestStr, c
          case  5: gWindowWidth=4096; gWindowHeight=4096; break;
          default: gWindowWidth=512;  gWindowHeight=512;  
          }
-         moleculeInfo.sceneInfo.width.x  = gWindowWidth;
-         moleculeInfo.sceneInfo.height.x = gWindowHeight;
+         moleculeInfo.sceneInfo.size.x = gWindowWidth;
+         moleculeInfo.sceneInfo.size.y = gWindowHeight;
       }
       else if ( strcmp(p->Name(),"postprocessing") == 0 )
       {
@@ -1403,7 +1401,7 @@ void renderIRT( Lacewing::Webserver::Request& request, IrtInfo& irtInfo, const b
    // --------------------------------------------------------------------------------
    // Create 3D Scene
    // --------------------------------------------------------------------------------
-   size_t len(irtInfo.sceneInfo.width.x*irtInfo.sceneInfo.height.x*gWindowDepth);
+   size_t len(irtInfo.sceneInfo.size.x*irtInfo.sceneInfo.size.y*gWindowDepth);
    long renderingTime = GetTickCount();
 
    // Lamp
@@ -1530,8 +1528,8 @@ void parseIRT( Lacewing::Webserver::Request& request, std::string& requestStr, c
          case  5: gWindowWidth=4096; gWindowHeight=4096; break;
          default: gWindowWidth=512;  gWindowHeight=512;  
          }
-         irtInfo.sceneInfo.width.x  = gWindowWidth;
-         irtInfo.sceneInfo.height.x = gWindowHeight;
+         irtInfo.sceneInfo.size.x  = gWindowWidth;
+         irtInfo.sceneInfo.size.y = gWindowHeight;
       }
       else if ( strcmp(p->Name(),"postprocessing") == 0 )
       {
@@ -1665,8 +1663,8 @@ int main(int argc, char * argv[])
 #else
    gpuKernel = new CPUKernel(false, 460, 0, 0);
 #endif
-   gSceneInfo.width.x = gWindowWidth;
-	gSceneInfo.height.x = gWindowHeight; 
+   gSceneInfo.size.x = gWindowWidth;
+	gSceneInfo.size.y = gWindowHeight; 
    gSceneInfo.graphicsLevel.x = 5;
    gSceneInfo.nbRayIterations.x = 10;
    gSceneInfo.transparentColor.x = 2.f;
