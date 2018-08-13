@@ -1600,9 +1600,47 @@ void parseURL( Lacewing::Webserver::Request& request )
    gNbCalls++;
 }
 
-// 
-void onGet(Lacewing::Webserver &Webserver, Lacewing::Webserver::Request &request)
+class WebServer
 {
+public:
+   static WebServer* getInstance();
+   ~WebServer() {};
+   static void onGet(Lacewing::Webserver &Webserver, Lacewing::Webserver::Request &request);
+   void setGPUKernel( GPUKernel* kernel );
+   GPUKernel* getGPUKernel() { return _kernel; }
+
+private:
+   WebServer();
+   static WebServer* _instance;
+
+private:
+   GPUKernel* _kernel;
+};
+
+WebServer* WebServer::_instance = 0;
+
+WebServer::WebServer() 
+{
+}
+
+WebServer* WebServer::getInstance() 
+{
+   if( _instance == 0 )
+   {
+      _instance = new WebServer();
+   }
+   return _instance;
+}
+
+void WebServer::setGPUKernel( GPUKernel* kernel )
+{
+   _kernel = kernel;
+}
+
+// 
+void WebServer::onGet(Lacewing::Webserver &Webserver, Lacewing::Webserver::Request &request)
+{
+   std::cout << "Kernel is " << (WebServer::getInstance()->getGPUKernel() ? "assigned" : "not assigned") << std::endl;
    // --------------------------------------------------------------------------------
    // Default values
    // --------------------------------------------------------------------------------
@@ -1693,7 +1731,9 @@ int main(int argc, char * argv[])
    // HTTP Stuff
    Lacewing::EventPump EventPump;
    Lacewing::Webserver Webserver(EventPump);
-   Webserver.onGet(onGet);
+
+   WebServer::getInstance()->setGPUKernel(gpuKernel);
+   Webserver.onGet(WebServer::onGet);
    Webserver.Host(10000);    
    EventPump.StartEventLoop();
 
